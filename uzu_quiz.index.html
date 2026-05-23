@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>えいたろう & UZU クイズ</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+      background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .container { width: 100%; max-width: 720px; }
+    #screen-title { text-align: center; animation: fadeIn 0.8s ease; }
+    .logo {
+      font-size: 3.5rem; font-weight: 900;
+      background: linear-gradient(90deg, #f7971e, #ffd200, #f7971e);
+      background-size: 200% auto;
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: shine 2s linear infinite;
+      line-height: 1.1; margin-bottom: 8px;
+    }
+    .subtitle { color: #c9d1f7; font-size: 1rem; margin-bottom: 32px; letter-spacing: 0.05em; }
+    .card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; padding: 36px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .rules { color: #dde3ff; line-height: 1.8; margin-bottom: 28px; font-size: 0.95rem; }
+    .rules li { margin-bottom: 6px; list-style: none; padding-left: 1.5em; position: relative; }
+    .rules li::before { content: '▶'; position: absolute; left: 0; color: #ffd200; font-size: 0.75em; top: 0.2em; }
+    .pool-info {
+      background: rgba(255,210,0,0.1);
+      border: 1px solid rgba(255,210,0,0.3);
+      border-radius: 10px; padding: 10px 14px;
+      color: #ffd200; font-size: 0.85rem; font-weight: 700;
+      margin-bottom: 20px; text-align: center;
+    }
+    .btn-start {
+      width: 100%; padding: 18px; border: none; border-radius: 14px;
+      font-size: 1.2rem; font-weight: 700; cursor: pointer;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1a2e; letter-spacing: 0.05em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(247,151,30,0.4);
+    }
+    .btn-start:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(247,151,30,0.55); }
+    .btn-start:active { transform: translateY(0); }
+    #screen-quiz { display: none; animation: fadeIn 0.5s ease; }
+    .progress-bar-wrap { background: rgba(255,255,255,0.1); border-radius: 99px; height: 8px; margin-bottom: 20px; overflow: hidden; }
+    .progress-bar { height: 100%; background: linear-gradient(90deg, #f7971e, #ffd200); border-radius: 99px; transition: width 0.4s ease; }
+    .meta-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .q-counter { color: #ffd200; font-weight: 700; font-size: 0.9rem; letter-spacing: 0.05em; }
+    .score-badge {
+      background: rgba(255,210,0,0.15);
+      border: 1px solid rgba(255,210,0,0.3);
+      color: #ffd200; padding: 4px 14px;
+      border-radius: 99px; font-weight: 700; font-size: 0.85rem;
+    }
+    .question-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px; padding: 32px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .category-tag {
+      display: inline-block;
+      background: rgba(247,151,30,0.2);
+      border: 1px solid rgba(247,151,30,0.4);
+      color: #ffd200; font-size: 0.75rem;
+      padding: 3px 10px; border-radius: 99px;
+      font-weight: 700; margin-bottom: 16px; letter-spacing: 0.05em;
+    }
+    .question-text { color: #ffffff; font-size: 1.15rem; font-weight: 700; line-height: 1.6; margin-bottom: 24px; }
+    .choices { display: flex; flex-direction: column; gap: 12px; }
+    .choice-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 12px; color: #dde3ff;
+      font-size: 1rem; padding: 14px 18px;
+      text-align: left; cursor: pointer;
+      transition: all 0.2s;
+      display: flex; align-items: center; gap: 12px; line-height: 1.4;
+    }
+    .choice-label {
+      min-width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 700; flex-shrink: 0; transition: all 0.2s;
+    }
+    .choice-btn:hover:not(:disabled) { background: rgba(255,255,255,0.12); border-color: rgba(255,210,0,0.5); transform: translateX(4px); }
+    .choice-btn:hover:not(:disabled) .choice-label { border-color: #ffd200; color: #ffd200; }
+    .choice-btn.correct { background: rgba(52,211,153,0.15); border-color: #34d399; color: #ffffff; }
+    .choice-btn.correct .choice-label { background: #34d399; border-color: #34d399; color: #fff; }
+    .choice-btn.wrong { background: rgba(239,68,68,0.15); border-color: #ef4444; color: rgba(255,255,255,0.6); }
+    .choice-btn.wrong .choice-label { background: #ef4444; border-color: #ef4444; color: #fff; }
+    .choice-btn.reveal { background: rgba(52,211,153,0.08); border-color: rgba(52,211,153,0.4); }
+    .choice-btn:disabled { cursor: default; }
+    .feedback-box { margin-top: 20px; padding: 16px; border-radius: 12px; font-size: 0.9rem; line-height: 1.6; display: none; }
+    .feedback-box.show { display: block; animation: slideUp 0.3s ease; }
+    .feedback-box.ok { background: rgba(52,211,153,0.12); border: 1px solid rgba(52,211,153,0.3); color: #a7f3d0; }
+    .feedback-box.ng { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+    .feedback-icon { font-size: 1.1rem; margin-right: 6px; }
+    .btn-next {
+      width: 100%; margin-top: 20px; padding: 15px;
+      border: none; border-radius: 12px;
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #fff; letter-spacing: 0.05em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: none;
+      box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+    }
+    .btn-next.show { display: block; animation: slideUp 0.3s ease; }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102,126,234,0.5); }
+    #screen-result { display: none; text-align: center; animation: fadeIn 0.8s ease; }
+    .result-card {
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 24px; padding: 40px 36px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .trophy { font-size: 5rem; margin-bottom: 12px; animation: bounce 1s ease infinite alternate; }
+    .result-title { font-size: 1.6rem; font-weight: 900; color: #fff; margin-bottom: 6px; }
+    .result-score {
+      font-size: 3.5rem; font-weight: 900;
+      background: linear-gradient(90deg, #f7971e, #ffd200);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin: 16px 0;
+    }
+    .result-score span { font-size: 1.5rem; color: #c9d1f7; -webkit-text-fill-color: #c9d1f7; }
+    .award-banner {
+      background: linear-gradient(135deg, rgba(247,151,30,0.2), rgba(255,210,0,0.2));
+      border: 2px solid rgba(255,210,0,0.5);
+      border-radius: 16px; padding: 20px; margin: 20px 0;
+      animation: pulse 2s ease infinite;
+    }
+    .award-title { font-size: 1.1rem; color: #ffd200; font-weight: 900; letter-spacing: 0.08em; }
+    .award-text { color: #ffe7a0; font-size: 0.9rem; margin-top: 6px; line-height: 1.5; }
+    .miss-banner {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 16px; padding: 16px; margin: 20px 0;
+    }
+    .miss-banner p { color: #c9d1f7; font-size: 0.9rem; line-height: 1.6; }
+    .result-msg { color: #c9d1f7; font-size: 0.95rem; line-height: 1.7; margin-bottom: 28px; }
+    .btn-retry {
+      width: 100%; padding: 16px;
+      border: none; border-radius: 14px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      background: linear-gradient(135deg, #f7971e, #ffd200);
+      color: #1a1a2e; letter-spacing: 0.05em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 20px rgba(247,151,30,0.4);
+    }
+    .btn-retry:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(247,151,30,0.55); }
+    .wrong-list { margin-top: 24px; text-align: left; }
+    .wrong-list h3 { color: #ffd200; font-size: 0.85rem; font-weight: 700; margin-bottom: 10px; letter-spacing: 0.05em; }
+    .wrong-item {
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px; padding: 10px 14px;
+      margin-bottom: 8px; font-size: 0.82rem;
+      color: #c9d1f7; line-height: 1.5;
+    }
+    .wrong-item .wq { color: #fff; font-weight: 600; margin-bottom: 4px; }
+    .wrong-item .wa { color: #34d399; }
+    .loading {
+      color: #c9d1f7; text-align: center; padding: 40px;
+      font-size: 0.95rem;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes shine { to { background-position: 200% center; } }
+    @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+    @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(255,210,0,0.2); } 50% { box-shadow: 0 0 0 12px rgba(255,210,0,0); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div id="screen-title">
+    <div class="logo">えいたろう & UZU<br>クイズ</div>
+    <div class="subtitle">平石英太郎 / Sally / マダミスアプリUZU</div>
+    <div class="card">
+      <div class="pool-info" id="pool-info">📚 問題プール読み込み中...</div>
+      <ul class="rules">
+        <li>毎回 <strong>20問</strong> をプールからランダム出題（3択形式）</li>
+        <li>問題プールは全 <strong>300問</strong>。プレイするたび出題内容が変わる</li>
+        <li>平石英太郎の略歴・アクション、UZUの発展、Sally社の成長が出題</li>
+        <li><strong>18問以上</strong>正解で🏆 <strong>UZUマスター Award</strong> を獲得！</li>
+        <li>各問正解後に解説が表示されます</li>
+      </ul>
+      <button class="btn-start" id="btn-start" onclick="startQuiz()" disabled>クイズ スタート ▶</button>
+    </div>
+  </div>
+  <div id="screen-quiz">
+    <div class="progress-bar-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+    <div class="meta-row">
+      <div class="q-counter" id="q-counter">問題 1 / 20</div>
+      <div class="score-badge" id="score-badge">正解 0 問</div>
+    </div>
+    <div class="question-card">
+      <div class="category-tag" id="category-tag">カテゴリ</div>
+      <div class="question-text" id="question-text">問題文</div>
+      <div class="choices" id="choices"></div>
+      <div class="feedback-box" id="feedback-box"></div>
+      <button class="btn-next" id="btn-next" onclick="nextQuestion()">次の問題へ →</button>
+    </div>
+  </div>
+  <div id="screen-result">
+    <div class="result-card">
+      <div class="trophy" id="trophy">🏆</div>
+      <div class="result-title" id="result-title">結果発表</div>
+      <div class="result-score" id="result-score">0 <span>/ 20問</span></div>
+      <div id="award-area"></div>
+      <div class="result-msg" id="result-msg"></div>
+      <button class="btn-retry" onclick="restartQuiz()">もう一度挑戦する 🔄</button>
+      <div class="wrong-list" id="wrong-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// えいたろう & UZU クイズ 問題プール（300問）
+// 出典：「平石英太郎・株式会社Sally・マダミスアプリUZU 創業(2018年)〜2026年の活動・ニュースまとめ」
+
+const QUESTIONS = [
+  /* ===== BATCH 1: 平石英太郎 略歴 + Sally基本情報 (Q1-Q50) ===== */
+  { category: "平石英太郎 略歴", q: "平石英太郎が生まれた年はいつか？", choices: ["1996年", "1998年", "2000年"], answer: 1, explanation: "平石英太郎は1998年、京都府生まれ。父親の仕事の関係で1歳から6歳までモスクワで暮らした帰国子女です。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が生まれた都道府県はどこか？", choices: ["東京都", "京都府", "大阪府"], answer: 1, explanation: "1998年、京都府生まれ。父親の仕事の関係で海外と日本を行き来した経歴を持ちます。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が幼少期（1〜6歳）に暮らした都市はどこか？", choices: ["ロンドン", "パリ", "モスクワ"], answer: 2, explanation: "父親の仕事の関係で1歳から6歳までモスクワ（ロシア）で暮らしました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が11歳の頃に1年間滞在した国はどこか？", choices: ["ドイツ", "フランス", "オーストリア"], answer: 2, explanation: "11歳の頃にオーストリアに1年間滞在しています。モスクワでの幼少期と合わせて帰国子女としての経歴を持ちます。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が東京大学に入学した年はいつか？", choices: ["2015年", "2016年", "2017年"], answer: 2, explanation: "2017年、東京大学に推薦入試で入学しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が東京大学に入学した方法はどれか？", choices: ["一般入試", "推薦入試", "AO入試"], answer: 1, explanation: "推薦入試で入学。「教育」と「笑い」をテーマにした論文で出願しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が東大入試の論文で扱ったテーマはどれか？", choices: ["「科学と技術」", "「教育と笑い」", "「経済と福祉」"], answer: 1, explanation: "「教育」と「笑い」をテーマにした論文で東京大学に推薦出願しています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が在籍していた東京大学の学部はどこか？", choices: ["工学部", "教育学部", "経済学部"], answer: 1, explanation: "教育学部に在籍。後に起業に専念するため大学を退学しています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がスタートアップへの興味を深めるきっかけとなった授業を担当した東大の教員はだれか？", choices: ["馬田隆明氏（FoundX）", "孫泰蔵氏", "前田裕二氏"], answer: 0, explanation: "東大の馬田隆明氏（FoundX）が開講するボードゲーム関連授業がスタートアップへの関心の入口となりました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が学生時代にインターンしたスタートアップとして正しいのはどれか？", choices: ["メルカリ", "株式会社POL", "LINEヤフー"], answer: 1, explanation: "株式会社POL（東京拠点リーダー）と株式会社COMPASSの2社でインターンしています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が株式会社POLでのインターンで担当した業務はどれか？", choices: ["エンジニアリング・開発", "マーケ・営業・カスタマーサクセス", "デザイン・UX"], answer: 1, explanation: "株式会社POLでは東京拠点リーダーとしてマーケ・営業・カスタマーサクセスを担当しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がインターンした「株式会社COMPASS」での担当業務はどれか？", choices: ["アプリ開発", "ワークショップ企画・FC拡大", "海外事業展開"], answer: 1, explanation: "株式会社COMPASSではワークショップ企画やFC（フランチャイズ）拡大を担当しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がSallyを創業したのは東京大学何年在学中だったか？", choices: ["1年", "2年", "3年"], answer: 1, explanation: "2018年8月、東大2年在学中に株式会社Sallyを設立しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎のX（旧Twitter）個人アカウント名はどれか？", choices: ["@eitaro_hiraishi", "@capriccioreiser", "@sally_eitaro"], answer: 1, explanation: "個人Xアカウントは @capriccioreiser。一部記事では「平石レゼ」表記でも紹介されています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がゲスト出演したSpotifyポッドキャスト「Startup Now」のエピソード番号は？", choices: ["#30前編", "#60前編", "#90前編"], answer: 1, explanation: "「Startup Now」#60前編にゲスト出演しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がマダミスを事業テーマに選んだ理由として語ったフレーズはどれか？", choices: ["「儲かると確信したから」", "「泣いたり笑ったり、最も自分のための事業テーマ」", "「競合が少なかったから」"], answer: 1, explanation: "「泣いたり笑ったり、自分にとって最も自分のための事業テーマだと思えたのがマダミスだった」とインタビューで語っています。" },
+  { category: "平石英太郎 略歴", q: "Sally創業の契機となったアクセラレータはどれか？", choices: ["Y Combinator", "500 Startups", "Open Network Lab"], answer: 2, explanation: "Open Network Lab（オープンネットワークラボ）のアクセラレータ採択がSally設立の契機となりました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が個人プロフィールを掲載しているカジュアル面談プラットフォームはどれか？", choices: ["Meety", "Pitta", "Yenta"], answer: 1, explanation: "Pittaに「平石英太郎／株式会社Sallyの中の人」としてプロフィールを公開しています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎の個人アカウント @capriccioreiser の別表記として一部記事に登場するのはどれか？", choices: ["平石マサ", "平石レゼ", "平石タロウ"], answer: 1, explanation: "一部記事で「平石レゼ」表記が使われています。" },
+  { category: "平石英太郎 略歴", q: "Sallyのビジョンに含まれるキーワードはどれか？", choices: ["「テクノロジーで社会を変える」", "「マダミスの渦」", "「人とつながるゲーム」"], answer: 1, explanation: "Sallyのビジョンは「世界中を体験型エンタメ『マダミス』の渦に巻き込む」です。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が東大で受講していた、スタートアップ興味の入口となった授業のジャンルはどれか？", choices: ["プログラミング関連", "ボードゲーム関連", "投資関連"], answer: 1, explanation: "馬田隆明氏が開講していたボードゲーム関連授業を通じてスタートアップへの興味を深めました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎の生い立ちとして正しいのはどれか？", choices: ["東京生まれ・東京育ち", "京都生まれ・モスクワ経由の帰国子女", "大阪生まれ・アメリカ育ち"], answer: 1, explanation: "1998年京都府生まれ。1〜6歳をモスクワ、11歳でオーストリアに1年間滞在した帰国子女です。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎のインタビューが掲載されたKDDI系メディアはどれか？", choices: ["MUGENLABO Magazine", "ASCII.jp", "KDDI Digital Times"], answer: 0, explanation: "KDDI Labo 12月全体会登壇に合わせて、MUGENLABO Magazineに個別インタビュー記事が掲載されました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が登壇したKDDI Lab全体会はいつ開催されたか？", choices: ["2023年8月13日", "2023年12月14日", "2024年3月22日"], answer: 1, explanation: "2023年12月14日のKDDI Labo 12月全体会に登壇しました。" },
+  { category: "平石英太郎 略歴", q: "シリーズA発表時に平石CEOが述べたコメントに含まれるフレーズはどれか？", choices: ["「AIがあらゆる体験を効率化する時代ほど、人が集まり物語に没入する時間の価値は高まる」", "「AIを活用してゲームを自動生成する」", "「競合他社を排除してシェアを獲得する」"], answer: 0, explanation: "シリーズA発表時のCEOコメント。AI時代の物語没入体験の価値を強調しています。" },
+  { category: "平石英太郎 略歴", q: "平石CEOが「マンガ・アニメと並ぶ大きな表現媒体にしたい」と語ったジャンルはどれか？", choices: ["ボードゲーム", "マダミス（体験型エンタメ）", "VRゲーム"], answer: 1, explanation: "「マダミスを起点に、生きる・体験するエンタメをマンガ・アニメと並ぶ大きな表現媒体にしたい」とコメントしています。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がSallyを創業した年月はどれか？", choices: ["2018年4月", "2018年8月", "2018年12月"], answer: 1, explanation: "2018年8月27日にSallyを設立しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎がインターンした2社のうち、POL以外はどれか？", choices: ["COMPASS", "ZOZO", "マネーフォワード"], answer: 0, explanation: "もう1社は株式会社COMPASS。ワークショップ企画・FC拡大を担当しました。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎の出身府はどれか？", choices: ["大阪府", "京都府", "兵庫県"], answer: 1, explanation: "京都府生まれです。" },
+  { category: "平石英太郎 略歴", q: "平石英太郎が東大を退学した理由として述べているのはどれか？", choices: ["成績不振による退学勧告", "起業に専念するため", "海外留学のため"], answer: 1, explanation: "起業に専念するため東大を退学しています。" },
+  { category: "Sally社 基本情報", q: "株式会社Sallyの正式英語名は何か？", choices: ["Sally Corporation", "Sally, Inc.", "Sally Ltd."], answer: 1, explanation: "正式名称は「株式会社Sally（Sally, Inc.）」です。" },
+  { category: "Sally社 基本情報", q: "株式会社Sallyの設立日はいつか？", choices: ["2018年4月1日", "2018年8月27日", "2019年1月15日"], answer: 1, explanation: "2018年8月27日設立。平石英太郎氏が東大2年在学中に創業しました。" },
+  { category: "Sally社 基本情報", q: "2026年5月時点のSallyの資本金はいくらか？", choices: ["1,810万円", "2,810万円", "3,810万円"], answer: 2, explanation: "2026年5月時点の資本金は3,810万円です。" },
+  { category: "Sally社 基本情報", q: "Sallyのビジョンはどれか？", choices: ["「日本のマダミスNo.1を目指す」", "「世界中を体験型エンタメ『マダミス』の渦に巻き込む」", "「スマホエンタメのプラットフォーマー」"], answer: 1, explanation: "ビジョンは「世界中を体験型エンタメ『マダミス』の渦に巻き込む」です。" },
+  { category: "Sally社 基本情報", q: "Sallyのミッションはどれか？", choices: ["「求心力ある一大マダミスプラットフォームを築く」", "「日本一のマダミスアプリを作る」", "「体験型エンタメで日本を変える」"], answer: 0, explanation: "ミッションは「求心力ある一大マダミスプラットフォームを築く」です。" },
+  { category: "Sally社 基本情報", q: "Sallyの本社所在地はどこか？", choices: ["東京都港区", "東京都渋谷区渋谷", "東京都新宿区"], answer: 1, explanation: "本社は東京都渋谷区渋谷にあります。" },
+  { category: "Sally社 基本情報", q: "Sallyの主力マダミスアプリの名前はどれか？", choices: ["MYSTERY", "UZU（ウズ）", "MADAN"], answer: 1, explanation: "主力プロダクトはマダミス通話アプリ「UZU（ウズ）」です。" },
+  { category: "Sally社 基本情報", q: "SallyのUZU公式Xのアカウント名はどれか？", choices: ["@uzuapp", "@uzuappjp", "@uzu_official"], answer: 1, explanation: "UZU公式Xアカウントは @uzuappjp です。" },
+  { category: "Sally社 基本情報", q: "Sallyが運営するシナリオ制作ツールの名前はどれか？", choices: ["UZU MAKER", "UZU STUDIO", "UZU CREATOR"], answer: 1, explanation: "シナリオ制作・申請ツールは「UZU STUDIO（ウズスタジオ）」です。" },
+  { category: "Sally社 基本情報", q: "Sallyが運営するシナリオ検索・公演予約ポータルの名前はどれか？", choices: ["マダミス.com", "マダミス.jp", "マダミスJAPAN"], answer: 1, explanation: "ポータルサイトは「マダミス.jp／マダミスjp予約」です。" },
+  { category: "Sally社 基本情報", q: "Sallyの社内IPコラボ・制作レーベルの名前はどれか？", choices: ["サリープロダクション", "ウズプロダクション", "マダミスプロダクション"], answer: 1, explanation: "社内レーベルは「ウズプロダクション」。常設直営劇場も運営しています。" },
+  { category: "Sally社 基本情報", q: "Sally創業当初の事業内容はどれか？", choices: ["toC向けゲームアプリ", "toB向けSaaS事業", "オンライン動画配信"], answer: 1, explanation: "創業当初はtoB向けSaaS事業を展開。その後toC事業（マダミス）へ全面転換しました。" },
+  { category: "Sally社 基本情報", q: "Sallyが海外に設立した支店はどの国にあるか？", choices: ["台湾", "中国", "韓国"], answer: 2, explanation: "2025年に韓国支店を設立し、韓国版UZUをリリースしました。" },
+  { category: "Sally社 基本情報", q: "ウズスタジオ公式Xのアカウント名はどれか？", choices: ["@uzustudio", "@uzu_studio", "@uzustudio_jp"], answer: 0, explanation: "ウズスタジオ公式Xは @uzustudio です。" },
+  { category: "Sally社 基本情報", q: "マダミス.jp公式Xのアカウント名はどれか？", choices: ["@mdmsjp", "@madamis_jp", "@mdms_official"], answer: 0, explanation: "マダミス.jp公式Xは @mdmsjp です。" },
+  { category: "Sally社 基本情報", q: "Sallyが志向するプラットフォーマー像として正しいのはどれか？", choices: ["オンライン専業", "オンライン／オフライン双方を一気通貫", "オフライン専業"], answer: 1, explanation: "オンライン・オフライン双方を一気通貫で押さえる「マダミス・プラットフォーマー」を志向しています。" },
+  { category: "Sally社 基本情報", q: "「UZU TOKYO」の所在地は何区か？", choices: ["港区", "渋谷区", "新宿区"], answer: 1, explanation: "東京都渋谷区にある常設直営劇場で、2025年6月にオープンしました。" },
+  { category: "Sally社 基本情報", q: "「マダミスシアター MyMy」の所在地は何区か？", choices: ["渋谷区", "新宿区", "港区"], answer: 2, explanation: "東京都港区三田にある2号店で、2026年4月にオープンしました。" },
+  { category: "Sally社 基本情報", q: "Sallyが事業を全振りしているジャンルはどれか？", choices: ["ボードゲーム全般", "マーダーミステリー（マダミス）", "TRPGゲーム"], answer: 1, explanation: "Sallyはマダミスというジャンルに事業を全振りしているスタートアップです。" },
+  { category: "Sally社 基本情報", q: "Sallyの「4方向の事業拡張」として正しいのはどれか？", choices: ["オンライン・リアル・IP・海外", "オンライン・オフライン・法人・海外", "SNS・ゲーム・アニメ・海外"], answer: 0, explanation: "シリーズA発表で「オンライン・リアル・IP・海外」の4方向への拡張戦略を打ち出しました。" },
+  /* ===== BATCH 2: UZUアプリ基本情報・機能・KPI (Q51-Q100) ===== */
+  { category: "Sally社 基本情報", q: "マダミスシアター MyMyの公式Xアカウント名はどれか？", choices: ["@mdms_mymy", "@mymy_theater", "@mdms_theater"], answer: 0, explanation: "マダミスシアター MyMy公式Xは @mdms_mymy です。2026年4月開業の2号店情報を発信しています。" },
+  { category: "Sally社 基本情報", q: "2020年夏に平石英太郎がマダミスを初体験した形はどれか？", choices: ["友人のリアル公演に誘われて", "オンラインで", "テレビ番組で見て"], answer: 1, explanation: "2020年夏にオンラインでマダミスを初体験して衝撃を受け、UZU開発を決断しました。" },
+  { category: "Sally社 基本情報", q: "Sallyのプラットフォーム好循環の構造はどれか？", choices: ["作品→遊び手→創り手→さらに作品", "遊び手→広告→設備投資→さらに遊び手", "創り手→サブスク収入→さらに創り手"], answer: 0, explanation: "「作品が増える→遊び手が集まる→創り手が参入する→さらに作品が増える」という好循環がプラットフォーム成長の根幹です。" },
+  { category: "Sally社 基本情報", q: "UZUは現在何人でプレイできるか？", choices: ["1〜4人", "1〜6人", "1〜8人"], answer: 2, explanation: "現在のUZUは1〜8人でプレイ可能。リリース当初は2〜5人でした。" },
+  { category: "Sally社 基本情報", q: "UZU STUDIOコミュニティで使われているプラットフォームはどれか？", choices: ["Slack", "Discord", "LINE"], answer: 1, explanation: "UZU STUDIOはDiscordコミュニティを擁しています。" },
+  { category: "Sally社 基本情報", q: "マダミスとは何をする遊びか？", choices: ["カードゲームの一種", "登場人物になりきって謎を解く会話型推理ゲーム", "ボードゲームの一種"], answer: 1, explanation: "マーダーミステリーは殺人事件などを題材に、各プレイヤーが登場人物になりきって謎を解く会話型推理ゲームです。" },
+  { category: "Sally社 基本情報", q: "マダミスが大きな体験型エンタメ市場として発展した発祥国はどこか？", choices: ["日本", "中国", "韓国"], answer: 1, explanation: "中国発の体験型エンタメで、2018年以降に台頭し、2022年末時点で約460億円規模に成長したと報じられています。" },
+  { category: "UZU アプリ", q: "UZUアプリの正式リリース日はいつか？", choices: ["2020年4月27日", "2021年4月27日", "2022年4月27日"], answer: 1, explanation: "2021年4月27日に正式リリース。2〜5人・プレイ時間30分〜3時間のシナリオ45作品でスタートしました。" },
+  { category: "UZU アプリ", q: "UZUリリース時の収録シナリオ数は？", choices: ["25作品", "35作品", "45作品"], answer: 2, explanation: "正式リリース時に45作品を収録してスタートしました。" },
+  { category: "UZU アプリ", q: "UZUはどの形式でマダミスを楽しめるアプリか？", choices: ["テキストチャット型", "音声通話型", "ビデオ通話型"], answer: 1, explanation: "音声通話型のマダミスアプリです。" },
+  { category: "UZU アプリ", q: "UZUの最大プレイ人数は何人か（2026年5月時点）？", choices: ["5人", "6人", "8人"], answer: 2, explanation: "1〜8人でプレイできます。" },
+  { category: "UZU アプリ", q: "UZUリリース初期のプレイ人数は？", choices: ["1〜5人", "2〜5人", "2〜8人"], answer: 1, explanation: "リリース初期は2〜5人プレイのシナリオを収録していました。" },
+  { category: "UZU アプリ", q: "UZUのシナリオのプレイ時間幅はどれか？", choices: ["10分〜1時間", "30分〜3時間", "1時間〜5時間"], answer: 1, explanation: "プレイ時間は30分〜3時間と幅広い設計になっています。" },
+  { category: "UZU アプリ", q: "UZUに実装されている機能として含まれないのはどれか？", choices: ["自動進行・読み上げ", "AI対戦プレイ機能", "チャット・タイマー"], answer: 1, explanation: "UZUはゲーム進行の自動化・読み上げ・チャット・タイマー機能で従来店舗集合型だったマダミスをアプリ内完結化しています。AI対戦機能は実装されていません。" },
+  { category: "UZU アプリ", q: "UZUのPC版が正式リリースされたのはいつか？", choices: ["2023年8月", "2024年8月", "2025年8月"], answer: 1, explanation: "2024年8月にPC版を正式リリース。配信向け素材を整備しました。" },
+  { category: "UZU アプリ", q: "UZUのPC版リリース時に整備されたコンテンツはどれか？", choices: ["動画配信向け素材", "印刷用マニュアル", "VR対応コンテンツ"], answer: 0, explanation: "2024年8月のPC版リリースに合わせて配信向け素材を整備しました。" },
+  { category: "UZU アプリ", q: "UZUアプリの英語版が正式リリースされたのはいつか？", choices: ["2024年6月", "2025年6月", "2026年6月"], answer: 1, explanation: "2025年6月、UZUアプリ英語版とUZU STUDIO英語版を正式リリースしました。" },
+  { category: "UZU アプリ", q: "UZUの台湾版がリリースされたのはいつか？", choices: ["2024年8月", "2024年11月", "2025年3月"], answer: 1, explanation: "2024年11月に台湾版UZUをリリースしました。" },
+  { category: "UZU アプリ", q: "UZUの韓国版はいつリリースされたか？", choices: ["2024年中", "2025年中", "2026年中"], answer: 1, explanation: "2025年に韓国支店を設立し、韓国版UZUをリリース。日本発マダミスプラットフォームのアジア展開を本格開始しました。" },
+  { category: "UZU アプリ", q: "2026年5月に追加されたUZUの新機能名はどれか？", choices: ["デイリーマッチ", "クイックマッチ", "スピードマッチ"], answer: 1, explanation: "2026年5月から毎晩19〜23時の即時マッチング機能「クイックマッチ」が利用可能になりました。" },
+  { category: "UZU アプリ", q: "クイックマッチが利用可能な時間帯はどれか？", choices: ["毎日12〜16時", "毎晩19〜23時", "毎朝7〜9時"], answer: 1, explanation: "毎晩19〜23時に即時マッチングが利用可能です。" },
+  { category: "UZU アプリ", q: "2025年にUZUへ実装された、捜査体験の自由度を高める新機能はどれか？", choices: ["謎解きタイマー強化", "探索フェーズ", "AIヒント機能"], answer: 1, explanation: "2025年に「探索フェーズ」など捜査体験の自由度を高める新機能を実装しました。" },
+  { category: "UZU アプリ", q: "UZUのv5.34.0がリリースされたのはいつか？", choices: ["2025年4月29日", "2025年8月29日", "2025年12月29日"], answer: 1, explanation: "2025年8月29日にv5.34.0をリリース。パフォーマンス改善・不具合修正が含まれました。" },
+  { category: "UZU アプリ", q: "UZUのユーザー平均通話時間（プレシリーズA時開示）は週何時間か？", choices: ["3.2時間", "5.5時間", "6.8時間"], answer: 2, explanation: "週平均通話時間は6.8時間と開示されています。" },
+  { category: "UZU アプリ", q: "UZUの累計ダウンロード数（2025年6月時点）はどれか？", choices: ["10万DL超", "20万DL超", "30万DL超"], answer: 2, explanation: "2025年6月時点で30万DL超を達成しています。" },
+  { category: "UZU アプリ", q: "UZUの累計プレイ数のカウント方法はどれか？", choices: ["ダウンロード数のみ", "マルチプレイ参加者数とソロプレイ回数の合計", "アクティブユーザー数のみ"], answer: 1, explanation: "累計プレイ数はマルチプレイ参加者数とソロプレイ回数の合計でカウントされます。" },
+  { category: "UZU アプリ", q: "2025年2月締切で公募されたUZUの役職はどれか？", choices: ["シナリオライター", "初心者向けGM", "プログラマー"], answer: 1, explanation: "2025年2月締切で「初心者向けGM」が公募されました。" },
+  { category: "UZU アプリ", q: "UZUとグループSNEの新レーベル名はどれか？", choices: ["SNE-MYSTERY", "SNE-UZU オリジナル／Light", "SNE-UZU PRO"], answer: 1, explanation: "「SNE-UZU オリジナル」「SNE-UZU Light」の2レーベルが2024年11月に発進しました。" },
+  { category: "UZU アプリ", q: "SNE-UZUレーベルが開設されたのはいつか？", choices: ["2024年7月", "2024年11月", "2025年3月"], answer: 1, explanation: "2024年11月にグループSNE独占レーベルとして開設されました。" },
+  { category: "UZU アプリ", q: "新レーベル「ルツボ」が発進したのはいつか？", choices: ["2025年4月", "2025年6月", "2025年9月"], answer: 1, explanation: "2025年6月に新レーベル「ルツボ」（UZU×週末倶楽部×白岩ぱんだ）が発進しました。" },
+  { category: "UZU アプリ", q: "「ルツボ」レーベルに参加しているクリエイターはだれか？", choices: ["白岩ぱんだ", "三ヶ崎四五六", "久畑バク"], answer: 0, explanation: "ルツボはUZU×週末倶楽部×白岩ぱんだのレーベルです。" },
+  { category: "UZU アプリ", q: "UZUで2024年12月に配信開始となったアニメコラボ作品の原作は？", choices: ["進撃の巨人", "マイホームヒーロー", "鬼滅の刃"], answer: 1, explanation: "2024年12月、アニメ「マイホームヒーロー」×UZU「もうひとつの完全犯罪」が配信開始されました。" },
+  { category: "UZU アプリ", q: "マイホームヒーロー×UZUのコラボシナリオのタイトルは？", choices: ["「消えた殺人犯」", "「もうひとつの完全犯罪」", "「ヒーローの秘密」"], answer: 1, explanation: "「もうひとつの完全犯罪」が配信タイトルです。" },
+  { category: "UZU アプリ", q: "UZUで配信された「金田一少年の事件簿」コラボ作品のタイトルはどれか？", choices: ["「剣持警部の陰謀」", "「死面旅館殺人事件」", "「黒死蝶殺人事件」"], answer: 1, explanation: "「金田一少年の事件簿 死面旅館殺人事件」として2025年初に展開されました。" },
+  { category: "UZU アプリ", q: "JOYSOUND直営店「みるハコ」協力型マダミス「いろは事件」が配信されたのはいつか？", choices: ["2025年4月", "2025年8月", "2025年12月"], answer: 1, explanation: "2025年8月にJOYSOUND直営店「みるハコ」協力型マダミス「いろは事件」が配信されました。" },
+  { category: "UZU アプリ", q: "UZUの「密室殺人ウィーク」が実施されたのはいつか？", choices: ["2025年2月25日〜3月6日", "2025年4月25日〜5月5日", "2025年9月25日〜10月5日"], answer: 1, explanation: "2025年4月25日〜5月5日に「密室殺人ウィーク」が実施されました。" },
+  { category: "UZU アプリ", q: "UZUで配信した市川憂人氏原作・シナリオの作品タイトルは？", choices: ["「コンダクターは破らない」", "「メロディは消えない」", "「シンフォニーの悲劇」"], answer: 0, explanation: "ミステリー作家・市川憂人氏原作・シナリオの「コンダクターは破らない」が2024年前半に配信されました。" },
+  { category: "UZU 成長", q: "2024年7月時点でUZUが達成した累計プレイ数はいくらか？", choices: ["50万回", "100万回", "200万回"], answer: 1, explanation: "2024年7月時点で累計プレイ100万回を突破しました。" },
+  { category: "UZU 成長", q: "2026年5月時点のUZUの累計プレイ数はいくら超か？", choices: ["150万超", "200万超", "250万超"], answer: 2, explanation: "シリーズA発表時に累計250万プレイ超を開示しました。" },
+  { category: "UZU 成長", q: "2026年5月時点の登録クリエイター数はいくら超か？", choices: ["3,000名超", "4,000名超", "4,800名超"], answer: 2, explanation: "2026年5月時点で登録クリエイター4,800名超に到達しています。" },
+  { category: "UZU 成長", q: "2024年時点の作家コミュニティ規模はいくら超か？", choices: ["100名超", "200名超", "400名超"], answer: 2, explanation: "2024年時点では作家コミュニティ400名超でした。2年で約12倍に拡大しています。" },
+  { category: "UZU 成長", q: "2026年5月時点のUZU収録作品数はいくら超か？", choices: ["1,200本超", "1,600本超", "1,900本超"], answer: 2, explanation: "2026年5月時点で1,900本超の作品が収録されています。" },
+  { category: "UZU 成長", q: "2026年5月時点のUZUの直近90日平均の月間新規作品数は？", choices: ["50作", "80作", "112作"], answer: 2, explanation: "直近90日平均で月112作、毎月100作品以上のペースで拡大中です。" },
+  { category: "UZU 成長", q: "UZU登録クリエイター数の2024年→2026年5月の増加率はおよそ何倍か？", choices: ["約2倍", "約12倍", "約4倍"], answer: 1, explanation: "400名超→4,800名超で約12倍に拡大しました。" },
+  { category: "UZU 成長", q: "UZUリリース時（2021年4月）と2026年5月では収録作品数はおよそ何倍になったか？", choices: ["約10倍", "約5倍", "約42倍"], answer: 2, explanation: "45作品→1,900本超で約42倍に拡大しました。" },
+  { category: "UZU 成長", q: "UZUの好循環を支える根幹となるエコシステムはどれか？", choices: ["広告出稿量", "UZU STUDIOによる作家エコシステム", "資金調達額の大きさ"], answer: 1, explanation: "UZU STUDIOで作家エコシステムを構築し、作品・遊び手・創り手の好循環を実現しています。" },
+  { category: "UZU 成長", q: "Sallyが「マダミス・プラットフォーマー」として持つ参入障壁の5軸に含まれないのはどれか？", choices: ["スマホアプリでの参入障壁低減", "シナリオ作家エコシステム", "独自の映画製作スタジオ"], answer: 2, explanation: "5軸は (1)スマホアプリ (2)作家エコシステム (3)大手IP・施設コラボ (4)旗艦店UZU TOKYO (5)周遊型イマーシブ公演シリーズ。独自映画製作スタジオは含まれません。" },
+  { category: "UZU 成長", q: "Sallyのプラットフォーム特性として正しいのはどれか？", choices: ["短時間プレイ・低単価", "滞在時間が長く、作品とユーザーと作家が相互に増える", "広告依存・ARPU重視"], answer: 1, explanation: "「滞在時間が長く、作品とユーザーと作家が相互に増える」プラットフォーム特性がVCを惹きつける要因と分析されています。" },
+  { category: "UZU 成長", q: "Sallyが2024年7月のプレシリーズAで開示した累計プレイ数はいくらか？", choices: ["50万回", "100万回", "200万回"], answer: 1, explanation: "プレシリーズA発表時点で累計プレイ100万回を突破していました。" },
+  { category: "UZU 成長", q: "UZUの累計プレイ数は2024年7月から2026年5月でおよそ何倍に？", choices: ["約2.5倍", "約5倍", "約10倍"], answer: 0, explanation: "100万超→250万超で約2.5倍。約2年弱でプレイ数が大きく伸びました。" },
+  /* ===== BATCH 3: UZU STUDIO + マダミス.jp + 資金調達 + 公演導入 (Q101-Q150) ===== */
+  { category: "UZU STUDIO", q: "UZU STUDIOはどんなツールか？", choices: ["プレイヤー向けスコア管理ツール", "マダミス作家向けのシナリオ制作・申請ツール", "GMのための公演運営ツール"], answer: 1, explanation: "UZU STUDIOはマダミス作家向けのシナリオ制作・申請ツールです。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOのβ版がリリースされたのはいつか？", choices: ["2021年4月", "2021年7月", "2021年11月"], answer: 1, explanation: "2021年7月にβ版がリリースされました。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOが英語対応したのはいつか？", choices: ["2024年6月", "2025年6月", "2026年6月"], answer: 1, explanation: "2025年6月、UZUアプリ英語版と同時にUZU STUDIOも英語対応しました。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOリリース以前、UZUの新作は週どのくらいのペースで供給されていたか？", choices: ["週1作", "週3作", "週10作"], answer: 0, explanation: "当初は週1作ペース。作家投稿モデルで拡大する狙いでUZU STUDIOがリリースされました。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOはシナリオ制作のどのフェーズまでカバーしているか？", choices: ["制作フェーズのみ", "テストプレイから審査・公開まで", "公開後のマーケティングまで"], answer: 1, explanation: "テストプレイから審査・公開まで完結する仕組みです。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOの公式ガイドのURLドメインはどれか？", choices: ["docs.uzu.app", "docs.studio.uzu-app.com", "studio.uzu.jp"], answer: 1, explanation: "公式ガイドは docs.studio.uzu-app.com です。" },
+  { category: "UZU STUDIO", q: "UZU STUDIOのコミュニティで使われているプラットフォームはどれか？", choices: ["Slack", "Discord", "LINE"], answer: 1, explanation: "Discordコミュニティを擁しており、作家同士の交流に活用されています。" },
+  { category: "マダミス.jp", q: "マダミス.jpのβ版が公開されたのはいつか？", choices: ["2021年4月27日", "2021年11月18日", "2022年3月1日"], answer: 1, explanation: "2021年11月18日にβ版が公開されました。" },
+  { category: "マダミス.jp", q: "マダミス.jpのβ版公開時に登録していたGMは何名か？", choices: ["5名", "11名", "20名"], answer: 1, explanation: "β版で11名のGMが登録した状態でスタートしました。" },
+  { category: "マダミス.jp", q: "マダミス.jpで提供されているサービスとして含まれないのはどれか？", choices: ["シナリオ検索・感想記録", "公演予約", "オンラインゲーム対戦機能"], answer: 2, explanation: "シナリオ検索・感想記録・公演予約ができるポータルサイトで、対戦機能はありません。" },
+  { category: "マダミス.jp", q: "「マダミスjp予約」が正式リリースされたのはいつか？", choices: ["2024年前半", "2024年末〜2025年初", "2025年後半"], answer: 1, explanation: "2024年末〜2025年初に「マダミスjp予約」が正式リリースされました。" },
+  { category: "マダミス.jp", q: "マダミスjp予約の正式リリースに合わせて実施されたキャンペーンはどれか？", choices: ["総額10万円お年玉キャンペーン", "総額100万円お年玉キャンペーン", "総額1,000万円キャッシュバック"], answer: 1, explanation: "総額100万円「お年玉キャンペーン」が実施されました。" },
+  { category: "マダミス.jp", q: "マダミス.jpのβ版公開を報じた媒体はどれか？", choices: ["4Gamer.net", "Famitsu", "電ファミニコゲーマー"], answer: 0, explanation: "4Gamer.netがβ版公開を報じています。" },
+  { category: "資金調達", q: "Sallyが採択されたアクセラレータはどれか？", choices: ["500 Startups", "Open Network Lab", "YJキャピタル"], answer: 1, explanation: "Open Network Labのアクセラレータ採択を契機にSallyを設立しました。" },
+  { category: "資金調達", q: "Sallyのシードラウンドを支援した投資家として正しいのはどれか？", choices: ["ソフトバンク・ビジョン・ファンド", "サムライインキュベート", "グーグル・ベンチャーズ"], answer: 1, explanation: "サムライインキュベート、UT Founders Fund、エンジェル投資家等から段階的にシード調達しています。" },
+  { category: "資金調達", q: "UT Founders Fundはどの大学に関連するファンドか？", choices: ["慶應義塾大学", "東京大学", "早稲田大学"], answer: 1, explanation: "東京大学関連ファンドです。シード段階からSallyに継続支援しています。" },
+  { category: "資金調達", q: "SallyのプレシリーズAが公表されたのはいつか？", choices: ["2024年7月11日", "2024年9月11日", "2025年1月11日"], answer: 0, explanation: "2024年7月11日にプレシリーズAラウンドの完了を公表しました。" },
+  { category: "資金調達", q: "プレシリーズA（2024年7月）での累計調達額はいくらか？", choices: ["1.4億円", "2.4億円", "3.4億円"], answer: 1, explanation: "プレシリーズAで累計調達額は2.4億円に到達しました。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加したゲーム・エンタメ系CVCはどれか？", choices: ["アニプレックスファンド", "GENDA Capital", "コーエーテクモホールディングス"], answer: 1, explanation: "GENDA Capital（GENDAグループ）がプレシリーズAで新規参加しました。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加した大手銀行系VCはどれか？", choices: ["三菱UFJキャピタル", "みずほキャピタル", "三井住友インキュベーション"], answer: 0, explanation: "三菱UFJキャピタルが新規参加。後のシリーズAでもフォローオン出資しています。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加した映画・エンタメ系VCはどれか？", choices: ["東映ベンチャーズ", "松竹ベンチャーズ", "角川アスキーファンド"], answer: 1, explanation: "松竹ベンチャーズがプレシリーズAで新規参加。松竹は「CLUB SECRET」でも協力しています。" },
+  { category: "資金調達", q: "SallyのシリーズAが公表されたのはいつか？", choices: ["2025年5月21日", "2026年5月21日", "2026年12月21日"], answer: 1, explanation: "2026年5月21日にシリーズAラウンドの資金調達を公表しました。" },
+  { category: "資金調達", q: "シリーズA（2026年5月）の引受先として正しくないのはどれか？", choices: ["JFR MIRAI CREATORS Fund", "千葉道場ファンド", "ソフトバンク・ビジョン・ファンド"], answer: 2, explanation: "引受先はJFR MIRAI CREATORS Fund・千葉道場ファンド・三菱UFJキャピタル（フォローオン）。ソフトバンクは含まれません。" },
+  { category: "資金調達", q: "シリーズA（2026年5月）でフォローオン出資した投資家はどれか？", choices: ["GENDA Capital", "三菱UFJキャピタル", "松竹ベンチャーズ"], answer: 1, explanation: "三菱UFJキャピタルがプレシリーズAに続いてフォローオン（追加出資）しました。" },
+  { category: "資金調達", q: "JFR MIRAI CREATORS Fundを共同運営しているCVCの母体企業はどれか？", choices: ["三越伊勢丹ホールディングス", "J.フロント リテイリング", "高島屋グループ"], answer: 1, explanation: "イグニション・ポイント ベンチャーパートナーズが、J.フロント リテイリングと共同運営するCVCファンドです。" },
+  { category: "資金調達", q: "J.フロント リテイリングが傘下に持つ商業施設として正しいのはどれか？", choices: ["イオン・マルエツ", "大丸松坂屋百貨店・パルコ", "東急・西武百貨店"], answer: 1, explanation: "大丸松坂屋百貨店・パルコを傘下に持っています。" },
+  { category: "資金調達", q: "千葉道場ファンドが出資理由として挙げたコメントはどれか？", choices: ["「デジタルゲーム市場の急成長」", "「AI前提社会でリアル体験・人とのコミュニケーションの価値が高まる」", "「海外市場への展開可能性」"], answer: 1, explanation: "AI時代の体験価値の高まりが時代潮流と合致するとの評価コメントを残しています。" },
+  { category: "資金調達", q: "シリーズA（2026年5月）の調達額は？", choices: ["1億円", "3億円", "非公表"], answer: 2, explanation: "調達額は非公表ながら、IPOを見据えた成長フェーズに入ると明言しています。" },
+  { category: "資金調達", q: "SallyがIPOを見据えると初めて公言したラウンドはどれか？", choices: ["シード", "プレシリーズA", "シリーズA"], answer: 2, explanation: "2026年5月のシリーズA発表時にIPOを見据えた成長フェーズに入ると明言しました。" },
+  { category: "資金調達", q: "プレシリーズAでエンジェルとして出資したのはどれか？", choices: ["千葉功太郎氏", "國本祐華氏（90s）", "前澤友作氏"], answer: 1, explanation: "國本祐華氏（90s）が個人として既存投資家として継続出資しました。" },
+  { category: "資金調達", q: "Sallyのシリーズの資金使途として明示されていないのはどれか？", choices: ["UZUアプリ・プラットフォーム機能強化", "海外でのテレビCM放映", "クリエイター支援機能の拡充"], answer: 1, explanation: "資金使途は (1)UZU機能強化 (2)体験型コンテンツ開発 (3)クリエイター支援機能。テレビCMは含まれません。" },
+  { category: "資金調達", q: "Sally Initialに副社長コメント付きで継続支援が確認できる投資家はどれか？", choices: ["GENDA Capital", "サムライインキュベート", "千葉道場ファンド"], answer: 1, explanation: "サムライインキュベートが副社長コメント付きで継続支援していることがINITIALで確認できます。" },
+  { category: "資金調達", q: "「JFR」はどの企業グループの略称か？", choices: ["日本FR", "J.フロント リテイリング", "ジャパンFR"], answer: 1, explanation: "J.フロント リテイリングの略称です。" },
+  { category: "資金調達", q: "Sallyのシリーズの将来目標として示されているのはどれか？", choices: ["東証グロース上場", "IPO（新規株式公開）を見据えた成長", "海外での上場"], answer: 1, explanation: "シリーズA発表でIPO（新規株式公開）を見据えた成長フェーズに入ると明言しました。" },
+  { category: "資金調達", q: "Sallyのプレシリーズの資金使途として含まれないのはどれか？", choices: ["UZUプラットフォーム強化", "オフラインの実店舗・イベント展開", "海外子会社の買収"], answer: 2, explanation: "資金使途は (1)プラットフォーム強化 (2)オフライン展開 (3)IP化・コンテンツ投資。海外買収は含まれません。" },
+  { category: "資金調達", q: "Sallyの2024年7月プレシリーズAで新規参加していないのはどれか？", choices: ["i-nest capital", "ABC Dream Ventures", "サムライインキュベート"], answer: 2, explanation: "サムライインキュベートは既存投資家（追加出資）。i-nest capital・ABC Dream Venturesは新規投資家です。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加したABC系VCはどれか？", choices: ["ABC Dream Ventures", "ABCマートキャピタル", "ABCラジオファンド"], answer: 0, explanation: "ABC Dream Ventures（ABC Dream Fund）が新規参加しました。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加したG-STARTUP関連ファンドはどれか？", choices: ["G-STARTUP Fund", "G-VENTURES", "GS Capital"], answer: 0, explanation: "G-STARTUP Fundがプレシリーズで新規参加しました。" },
+  { category: "資金調達", q: "プレシリーズAで新規参加したi-nest系VCは？", choices: ["i-nest capital", "i-nestlé partners", "iVentures"], answer: 0, explanation: "i-nest capitalが新規参加しました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "ウズプロダクションが初めて手がけた周遊型イマーシブサスペンスの作品名は？", choices: ["呪景", "盗薬次楽", "落掌"], answer: 1, explanation: "『盗薬次楽』がウズプロダクション初の本格的な周遊型イマーシブサスペンスです。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』の開催期間は？", choices: ["2025年3月1日〜4月1日", "2025年4月26日〜5月26日", "2025年7月1日〜8月1日"], answer: 1, explanation: "2025年4月26日〜5月26日に池袋PARCOで開催されました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』の会場はどこか？", choices: ["渋谷109", "池袋PARCO", "新宿伊勢丹"], answer: 1, explanation: "池袋PARCO本館で開催されました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』の主催は？", choices: ["Sally×東急プラザ", "Sally×パルコ", "Sally×三菱地所"], answer: 1, explanation: "株式会社Sally×株式会社パルコの主催、企画はウズプロダクション。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』のシナリオを担当したのはだれか？", choices: ["久畑バク", "三ヶ崎四五六", "東大マーダーミステリーサークル"], answer: 1, explanation: "シナリオは三ヶ崎四五六、演出・演技指導はSLYが担当しました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』の演出・演技指導はどれか？", choices: ["SLY", "UZUプロダクション", "ウズ演出部"], answer: 0, explanation: "演出・演技指導はSLYが担当しました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』の体験時間はどのくらいか？", choices: ["約45分", "約90分", "約180分"], answer: 1, explanation: "体験時間は約90分です。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』のキャッチコピーに含まれるフレーズは？", choices: ["「謎の館から脱出せよ」", "「なぜか人が集まり始めている噂のバイトがある」", "「消えた宝石を追え」"], answer: 1, explanation: "「なぜか人が集まり始めている噂のバイトがある」というキャッチで募集されました。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』のチケット完売までの期間は？", choices: ["1か月", "2か月", "3か月"], answer: 0, explanation: "1か月で完売した実績作です。" },
+  { category: "イマーシブ公演 盗薬次楽", q: "『盗薬次楽』のウズプロダクション内での位置づけは？", choices: ["テスト公演", "初の本格的な周遊型イマーシブサスペンス", "観光地展開の試み"], answer: 1, explanation: "ウズプロダクション初の本格的な周遊型イマーシブサスペンスです。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』の開催期間は？", choices: ["2025年5月", "2025年6月21〜22日", "2025年9月"], answer: 1, explanation: "2025年6月21〜22日の2日間限定で開催されました。" },
+  /* ===== BATCH 4: イマーシブ公演 残り作品 (Q151-Q200) ===== */
+  { category: "イマーシブ公演 呪景", q: "『呪景』の会場はどこか？", choices: ["GiGO EXPO ZEROおよび秋葉原GiGO", "池袋PARCO", "東急プラザ渋谷"], answer: 0, explanation: "ベルサール秋葉原および秋葉原GiGO（GiGO EXPO ZEROの目玉企画）で開催されました。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』の主催はどれか？", choices: ["Sally×東京メトロ", "Sally×GENDA GiGO Entertainment", "Sally×東急プラザ"], answer: 1, explanation: "Sally×GENDA GiGO Entertainmentの主催で、業務提携第一弾として位置づけられました。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』が題材としたモチーフは？", choices: ["廃ビルを使った都市伝説", "呪われたクレーンゲームにまつわる都市伝説", "幽霊が出るホテル"], answer: 1, explanation: "「呪われたクレーンゲーム」を巡る都市伝説をモチーフに、実際のGiGO店内クレーンゲームを操作しながら謎を進める設計でした。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』の参加費はどれか？", choices: ["5,000円", "3,000円", "無料（予約制）"], answer: 2, explanation: "参加費無料・予約制で開催されました。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』は何日間の限定公演か？", choices: ["1日間", "2日間", "7日間"], answer: 1, explanation: "2日間限定（2025年6月21〜22日）で実施されました。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』はSally×GENDA業務提携の第何弾か？", choices: ["第一弾", "第二弾", "第三弾"], answer: 0, explanation: "Sally×GENDA GiGO業務提携第一弾として位置づけられた公演です。" },
+  { category: "イマーシブ公演 呪景", q: "『呪景』で参加者が実際に操作した設備は？", choices: ["パチンコ台", "GiGO店内のクレーンゲーム", "アーケードゲーム筐体"], answer: 1, explanation: "GiGO店内のクレーンゲームを実際に操作しながら謎を進める設計が特徴でした。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』の開催期間は？", choices: ["2025年8月1日〜9月30日", "2025年10月25日〜11月23日", "2025年12月1日〜12月31日"], answer: 1, explanation: "2025年10月25日〜11月23日に東急プラザ渋谷で開催されました。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』の会場はどこか？", choices: ["池袋PARCO", "六本木ヒルズ", "東急プラザ渋谷"], answer: 2, explanation: "東急プラザ渋谷の館内を巡る周遊型公演として開催されました。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』のメインシナリオ担当はだれか？", choices: ["三ヶ崎四五六", "久畑バク", "東大マーダーミステリーサークル"], answer: 1, explanation: "メインシナリオは久畑バク（『流星のモビーディック』『裁きのアトリエ』など）が担当しました。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』の体験時間はどのくらいか？", choices: ["約45分", "約90分", "約120分"], answer: 1, explanation: "体験時間は約90分です。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』のストーリー導入はどれか？", choices: ["「見知らぬホテルの部屋で目覚めた」", "「落とし物サイトで身に覚えのないカバンが表示される」", "「謎の手紙が届く」"], answer: 1, explanation: "「落とし物サイトで身に覚えのないカバンが表示される」というフックから物語が始まります。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』の10月31日は何の日？", choices: ["チケット売り切れ", "休演日", "特別公演"], answer: 1, explanation: "10月31日は休演日でした。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』を特集した媒体として正しいのは？", choices: ["朝日新聞・毎日新聞", "4Gamer.netおよびTABI LABO", "日経新聞・産経新聞"], answer: 1, explanation: "4Gamer.netやTABI LABOで特集されました。" },
+  { category: "イマーシブ公演 落掌", q: "『落掌』のプレイ料金（平日・1人あたり）の下限はいくらか？", choices: ["1,000円", "2,000円", "3,850円"], answer: 2, explanation: "平日は3,850〜7,150円／土日祝は4,180〜7,700円（人数・席種で変動）。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』の開催期間は？", choices: ["2025年9月1日〜9月30日", "2025年11月15日〜12月28日", "2026年1月1日〜1月31日"], answer: 1, explanation: "2025年11月15日〜12月28日に池袋PARCOで開催されました。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』の会場はどこか？", choices: ["東急プラザ渋谷", "秋葉原GiGO", "池袋PARCO本館8F特設スペース"], answer: 2, explanation: "池袋PARCO本館8F特設スペースを起点に館内を周遊する構成でした。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』のキャッチコピーは？", choices: ["「孤島に取り残された」", "「報酬1億円の怪しい運搬バイト」", "「呪いのホテルへようこそ」"], answer: 1, explanation: "「報酬1億円の怪しい運搬バイト」をフックに池袋PARCOの裏側へ踏み込む構成です。" },
+  { category: "イマーシブ公演 密行喩送", q: "AdverTimesで紹介された『密行喩送』のプロモーション戦略の特徴は？", choices: ["「SNS広告に多額を投入した」", "「情報をあえて最小限に絞る」", "「有名人をアンバサダーに起用した」"], answer: 1, explanation: "「情報をあえて最小限に絞る」プロモーション戦略の裏側がAdverTimesで特集されました。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』を裏側特集した媒体はどれか？", choices: ["日経MJ", "AdverTimes（宣伝会議）", "マーケターズハブ"], answer: 1, explanation: "AdverTimes（宣伝会議）でプロモーション戦略のメイキング記事が掲載されました。" },
+  { category: "イマーシブ公演 密行喩送", q: "4Gamer.netの『密行喩送』レポートでの評価フレーズは？", choices: ["「初心者でも楽しめるライトなゲーム」", "「暗号解読力と演技力が試される周遊型イマーシブサスペンス」", "「リアル脱出ゲームの新形態」"], answer: 1, explanation: "「暗号解読力と演技力が試される周遊型イマーシブサスペンス」として高評価を受けました。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』のチケット販売はどこ経由か？", choices: ["チケットぴあ", "PARCO GAMES", "ローソンチケット"], answer: 1, explanation: "PARCO GAMES経由で販売されました。" },
+  { category: "イマーシブ公演 密行喩送", q: "『密行喩送』の体験時間はどのくらいか？", choices: ["約45分", "約90分", "約120分"], answer: 1, explanation: "体験時間は約90分です。" },
+  { category: "イマーシブ公演 恣験", q: "イマーシブ試験『恣験』の開催期間は？", choices: ["2026年1月31日〜2月28日", "2026年3月1日〜3月31日", "2026年4月1日〜4月30日"], answer: 0, explanation: "2026年1月31日〜2月28日に開催されました。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』の会場はどこか？", choices: ["カラオケビッグエコー", "カラオケ館渋谷本店", "カラオケジャンカラ"], answer: 1, explanation: "カラオケ館渋谷本店（毎週木金土日開催）で実施されました。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』のゲームデザインは？", choices: ["東大マーダーミステリーサークル", "京大推理研究会", "ウズプロダクション内部チーム"], answer: 0, explanation: "ゲームデザインを東大マーダーミステリーサークルが担当しました。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』の体験時間は？", choices: ["約30分", "約60分", "約120分"], answer: 1, explanation: "体験時間は約60分（受付・移動含む）です。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』の参加人数は何名か？", choices: ["1〜5名", "1〜3名", "2〜4名"], answer: 1, explanation: "1〜3名で参加可能です。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』のフォーマットの特徴は？", choices: ["ホテル全体を巡回するホラー体験", "カラオケルームを試験会場に見立て個室を巡って試験官と対話", "電車に乗りながら進む体験"], answer: 1, explanation: "カラオケルームを試験会場に見立て、複数の個室を巡って試験官と対話しながら謎を解く構成です。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』が担う役割は？", choices: ["最高難易度の上級者向け", "イマーシブ入門の役割", "ファミリー向け入門コース"], answer: 1, explanation: "短時間・少人数・低価格でイマーシブ入門の役割を担う公演として位置づけられています。" },
+  { category: "イマーシブ公演 恣験", q: "『恣験』の開催曜日はどれか？", choices: ["月火水木", "木金土日", "土日のみ"], answer: 1, explanation: "毎週木金土日に開催されました。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』の開催期間は？", choices: ["2026年2月12日〜2月28日", "2026年3月12日〜3月30日", "2026年4月1日〜4月30日"], answer: 1, explanation: "2026年3月12日〜3月30日に開催されました。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』の会場はどこか？", choices: ["JR東日本駅施設", "東京メトロ駅施設", "阪急電鉄駅施設"], answer: 1, explanation: "東京メトロの駅施設（一部非公開エリア含む）で実施されました。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』はどのような日本初の事例か？", choices: ["アニメIPコラボ初", "鉄道施設を舞台にした周遊型イマーシブサスペンス初", "無人運転電車を舞台にした公演初"], answer: 1, explanation: "日本の鉄道施設を舞台にした周遊型イマーシブサスペンスとしては初の事例です。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』の共催はどこか？", choices: ["JR東日本", "東京メトロ", "小田急電鉄"], answer: 1, explanation: "Sally×東京メトロが共催しました。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』のストーリー導入は？", choices: ["「密室に閉じ込められ脱出せよ」", "「駅構内で展示を見ていたら指名手配犯として顔写真を流される」", "「改札で謎の紙切れを拾う」"], answer: 1, explanation: "駅構内の小さな展示を見ていた主人公が、突然テレビニュースで指名手配犯として顔写真を流される、という導入から物語が始まります。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』を取り上げた媒体として含まれないのはどれか？", choices: ["鉄道チャンネル", "TimeOut東京", "アニメジャパンニュース"], answer: 2, explanation: "鉄道チャンネル、TimeOut東京、railf.jp、ナゾヒロバなど鉄道・エンタメ系媒体で取り上げられました。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』のプレイに必要なものとして正しくないのは？", choices: ["LINEアプリ入りスマートフォン", "東京メトロ全線の交通系ICカード／一日券", "特製の地図印刷物"], answer: 2, explanation: "LINE入りスマートフォンと十分な充電、東京メトロ全線のICカードまたは一日券が必要。地図印刷物は不要です。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』の体験時間はどのくらいか？", choices: ["約30〜60分", "約90〜120分", "約180〜240分"], answer: 1, explanation: "体験時間は90〜120分です。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』の休演日はいつか？", choices: ["3月20日", "3月25日", "3月30日"], answer: 0, explanation: "3月20日が休演日でした。" },
+  { category: "イマーシブ公演 逃窓", q: "『逃窓（TOSO）』で平日2名貸切の1人あたり料金は？", choices: ["5,500円", "7,920円", "9,800円"], answer: 1, explanation: "平日は2名貸切で1人あたり7,920円、3名で5,940円、4名で4,950円です。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』の開催期間は？", choices: ["2026年3月1日〜3月31日", "2026年4月29日〜5月31日", "2026年6月1日〜6月30日"], answer: 1, explanation: "2026年4月29日〜5月31日に開催されました。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』の会場はどこか？", choices: ["神奈川・鎌倉の廃校舎", "横須賀・追浜の閉鎖ホテル", "東京・横浜の廃工場"], answer: 1, explanation: "横須賀・追浜の閉鎖ホテルを一棟丸ごと貸切って開催されました。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』の主催・企画制作はどれか？", choices: ["Sally×東京メトロ", "Sally（ウズプロダクション）×三菱地所", "Sally×GENDA GiGO"], answer: 1, explanation: "主催Sally、企画・制作はウズプロダクション×三菱地所。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』の体験時間はどのくらいか？", choices: ["約60分", "約90分", "約180分"], answer: 1, explanation: "体験時間は約90分です。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』が実証している施設活用の新モデルは？", choices: ["商業施設×エンタメ", "廃墟・遊休不動産のエンタメ化", "公共交通機関×エンタメ"], answer: 1, explanation: "三菱地所と組んで廃墟・遊休不動産のエンタメ化という新しい施設活用モデルを実証しています。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』での体験スタイルは？", choices: ["映像視聴とパズル型謎解き", "プレイヤーはホテルのゲストとしてキャストとの会話で進行する完全没入型", "チームで謎を解くアクション型"], answer: 1, explanation: "プレイヤーがホテルのゲストとして物語に組み込まれ、キャストとの会話で進行する完全没入型公演です。" },
+  { category: "イマーシブ公演 淵泊渚", q: "『淵泊渚』のスタート時間枠は？", choices: ["8時〜12時（30分刻み）", "10時〜16時50分（10分刻み）", "15時〜21時（1時間刻み）"], answer: 1, explanation: "10:00〜16:50（13:00〜13:50除く）10分刻みでスタートしました。" },
+  { category: "イマーシブ公演 道饗に轟く", q: "『道饗に轟く』の開催地はどこか？", choices: ["京都府・嵐山", "福井県・熊川宿", "奈良県・飛鳥地区"], answer: 1, explanation: "福井県の宿場町・熊川宿（重要伝統的建造物群保存地区）で開催されました。" },
+  { category: "イマーシブ公演 道饗に轟く", q: "『道饗に轟く』が開催されたのは何年か？", choices: ["2024年3月と9月", "2025年3月と12月", "2026年1月と7月"], answer: 1, explanation: "2025年3月および12月に開催されました。" },
+  { category: "イマーシブ公演 道饗に轟く", q: "熊川宿はどのような文化的価値を持つ地区か？", choices: ["世界遺産登録地区", "重要伝統的建造物群保存地区", "国立公園特別区域"], answer: 1, explanation: "重要伝統的建造物群保存地区です。観光地でのイマーシブ展開事例として注目されています。" },
+  /* ===== BATCH 5: IPコラボ・リアル店舗・事業提携 (Q201-Q250) ===== */
+  { category: "IP・コンテンツコラボ", q: "KONAMI「PROJECT ZIRCON」とのコラボの中身は？", choices: ["アーケードゲーム開発", "マダミスコンテスト（第1回・第2回）", "アニメ化プロジェクト"], answer: 1, explanation: "PROJECT ZIRCONとのコラボは第1回・第2回マダミスコンテストの形で実施されました。" },
+  { category: "IP・コンテンツコラボ", q: "PROJECT ZIRCONマダミスコンテストが実施された年は？", choices: ["2023年", "2024年", "2025年"], answer: 1, explanation: "2024年に第1回・第2回が実施されました。" },
+  { category: "IP・コンテンツコラボ", q: "PROJECT ZIRCONマダミスコンテストのKONAMI Award賞金はいくらか？", choices: ["1万円", "3万円", "5万円"], answer: 2, explanation: "KONAMI Awardは賞金5万円です。NFT報酬や公式アーティスト権限なども提供されました。" },
+  { category: "IP・コンテンツコラボ", q: "PROJECT ZIRCONマダミスコンテストで提供された報酬として含まれないのは？", choices: ["NFT報酬", "公式アーティスト権限", "主要キャラクターのフィギュア"], answer: 2, explanation: "報酬はNFT・公式アーティスト権限・KONAMI Award賞金など。フィギュアは含まれません。" },
+  { category: "IP・コンテンツコラボ", q: "PROJECT ZIRCONはどのような領域のIPプロジェクトか？", choices: ["スマホゲームIP", "web3 IPプロジェクト", "アーケードゲームIP"], answer: 1, explanation: "web3 IPプロジェクトとの大規模コラボとして位置づけられています。" },
+  { category: "IP・コンテンツコラボ", q: "グループSNE独占レーベルの開始時期は？", choices: ["2024年7月", "2024年11月", "2025年4月"], answer: 1, explanation: "2024年11月に「SNE-UZU オリジナル」「SNE-UZU Light」が独占展開を始めました。" },
+  { category: "IP・コンテンツコラボ", q: "グループSNEはどのジャンルで知られる企業か？", choices: ["ファッション", "TRPG老舗企業", "映像制作"], answer: 1, explanation: "TRPG老舗企業として知られています。" },
+  { category: "IP・コンテンツコラボ", q: "週刊少年ジャンプとUZUの連携内容は？", choices: ["ジャンプキャラのゲーム化", "誌面にマダミス連動コーナー", "ジャンプコミックスのリアル謎解き"], answer: 1, explanation: "週刊少年ジャンプ誌面にマダミス連動コーナーがUZU連携で展開されました。" },
+  { category: "IP・コンテンツコラボ", q: "2025年10〜11月の小学館との共創作品数は？", choices: ["1作品", "3作品", "5作品"], answer: 1, explanation: "「マンガワン」連載作のマダミス化を含む3作品が順次リリースされました。" },
+  { category: "IP・コンテンツコラボ", q: "小学館との共創3作品の配信先は？", choices: ["マンガワンのみ", "UZU", "Cygamesゲームアプリ"], answer: 1, explanation: "3作品はすべてUZUで配信されました。" },
+  { category: "IP・コンテンツコラボ", q: "「裏バイト:逃亡禁止」のマダミス作品のタイトルは？", choices: ["たつ子の謎", "鈴木の謎", "山本の謎"], answer: 0, explanation: "「裏バイト:逃亡禁止 たつ子の謎」が小学館との共創3作品の1つです。" },
+  { category: "IP・コンテンツコラボ", q: "SANKYO発のマダミス制作集団の名前は？", choices: ["チーム本館三階一号", "チームSANKYO推理班", "SANKYO Mystery Team"], answer: 0, explanation: "講談社・MBS・アニプレックス有志と作家による制作集団「チーム本館三階一号」がオリジナル作品を制作しました。" },
+  { category: "IP・コンテンツコラボ", q: "SANKYO発マダミス作品のタイトルは？", choices: ["「オールフォーワン・ワンフォーオール」", "「ワンフォーオール・オールフォーマーダー」", "「ゼロフォーオール・オールフォーゼロ」"], answer: 1, explanation: "「ワンフォーオール・オールフォーマーダー」が2025年10月にリリースされました。" },
+  { category: "IP・コンテンツコラボ", q: "2024年4月開始の「突然ミステリー」コラボホテルは？", choices: ["帝国ホテル", "ロイヤルパークホテル", "パレスホテル"], answer: 1, explanation: "ロイヤルパークホテルとの体験型イベント「CLUB SECRET」が2024年4月にスタートしました。" },
+  { category: "IP・コンテンツコラボ", q: "「突然ミステリー」のイベント名は？", choices: ["「MYSTERY NIGHT」", "「CLUB SECRET」", "「DETECTIVE PARTY」"], answer: 1, explanation: "「CLUB SECRET」がロイヤルパークホテル地下バーを舞台とした大人向け体験型エンタメのイベント名です。" },
+  { category: "IP・コンテンツコラボ", q: "「突然ミステリー」のチケット300枚完売までの時間は？", choices: ["1時間", "5時間", "25時間"], answer: 2, explanation: "チケット300枚が25時間で完売しました。" },
+  { category: "IP・コンテンツコラボ", q: "東京ゲームショウ2024で発表されたコラボは？", choices: ["Square Enix×UZU", "KONAMI PROJECT ZIRCON×UZU第2回マダミスコンテスト", "Capcom×UZUシリーズ"], answer: 1, explanation: "2024年9月の東京ゲームショウ2024でKONAMI PROJECT ZIRCON×UZU第2回マダミスコンテストが発表されました。" },
+  { category: "IP・コンテンツコラボ", q: "「探偵シド・アップダイク KOBUSHI CLUB」の共創出版社は？", choices: ["講談社", "小学館", "集英社"], answer: 1, explanation: "小学館との共創3作品の1つです。" },
+  { category: "IP・コンテンツコラボ", q: "「旧校舎肝試し殺人事件」の共創出版社は？", choices: ["集英社", "小学館", "KADOKAWA"], answer: 1, explanation: "「旧校舎肝試し殺人事件」も小学館との共創3作品の1つです。" },
+  { category: "リアル店舗", q: "UZU TOKYOの正式オープン日はいつか？", choices: ["2024年6月6日", "2025年6月6日", "2026年6月6日"], answer: 1, explanation: "2025年6月6日に渋谷で正式オープンしました。" },
+  { category: "リアル店舗", q: "UZU TOKYOのプレオープンはいつ行われたか？", choices: ["2025年3月24・31日、4月1日", "2025年5月24・31日、6月1日", "2025年7月24・31日、8月1日"], answer: 1, explanation: "2025年5月24・31日、6月1日にプレオープンが実施されました。" },
+  { category: "リアル店舗", q: "UZU TOKYOプレオープン公演の参加方法は？", choices: ["先着順の有料参加", "事前応募制の無料プレ公演", "抽選式の有料参加"], answer: 1, explanation: "事前応募制の無料プレ公演として実施されました。" },
+  { category: "リアル店舗", q: "UZU TOKYOの所在地（ビル名まで）は？", choices: ["渋谷区渋谷2-3-8 倉島渋谷ビル6F", "渋谷区道玄坂1-1-1 渋谷ビル5F", "渋谷区宇田川町1-1 渋谷タワー3F"], answer: 0, explanation: "渋谷区渋谷2-3-8 倉島渋谷ビル6Fにあります。" },
+  { category: "リアル店舗", q: "UZU TOKYOの平日料金（税込）は？", choices: ["2,000円", "2,850円", "3,500円"], answer: 1, explanation: "平日2,850円（税込）、土日祝3,180円（税込）です。" },
+  { category: "リアル店舗", q: "UZU TOKYOの土日祝料金（税込）は？", choices: ["2,850円", "3,180円", "3,500円"], answer: 1, explanation: "土日祝は3,180円（税込）です。" },
+  { category: "リアル店舗", q: "UZU TOKYOの予約形式は？", choices: ["個人予約制", "グループ貸切制", "先着順入場制"], answer: 1, explanation: "グループ貸切制で運営されています。" },
+  { category: "リアル店舗", q: "UZU TOKYOに実装されているサラウンドシステムは？", choices: ["5.1chサラウンド", "8.1chサラウンド", "10.1chサラウンド"], answer: 1, explanation: "8.1chサラウンド＋DMX照明でシナリオ連動演出を実現しています。" },
+  { category: "リアル店舗", q: "UZU TOKYOで使用される演出用機材は？", choices: ["8.1chサラウンド＋DMX照明", "プロジェクションマッピング＋モーションセンサー", "4Kシアタースクリーン＋ミラー装置"], answer: 0, explanation: "8.1chサラウンド＋DMX照明の組み合わせで没入型演出を提供します。" },
+  { category: "リアル店舗", q: "UZU TOKYO公式サイトが公開されたのは？", choices: ["2025年6月6日", "2025年10月16日", "2026年1月1日"], answer: 1, explanation: "2025年10月16日に公式サイトが公開されました（Murder.JPで報道）。" },
+  { category: "リアル店舗", q: "マダミスシアター MyMyがオープンしたのは？", choices: ["2025年10月", "2026年4月", "2026年6月"], answer: 1, explanation: "2026年4月にオープンしました。" },
+  { category: "リアル店舗", q: "マダミスシアター MyMyの所在地は？", choices: ["東京都港区三田", "東京都渋谷区渋谷", "東京都新宿区新宿"], answer: 0, explanation: "東京都港区三田にある2号店です。" },
+  { category: "リアル店舗", q: "SallyはUZU TOKYOとMyMyで何店舗体制を確立したか？", choices: ["2店舗体制", "3店舗体制", "5店舗体制"], answer: 0, explanation: "直営劇場2店舗体制を確立しました。" },
+  { category: "リアル店舗", q: "JOYSOUND×UZUコラボの協力店種類は？", choices: ["カラオケJOYSOUND直営店「みるハコ」", "カラオケビッグエコー全店", "カラオケ館全店"], answer: 0, explanation: "JOYSOUND直営店「みるハコ」が協力店として連携しました。" },
+  { category: "リアル店舗", q: "UZU TOKYOとMyMyは同じ区にあるか？", choices: ["同じ渋谷区", "違う（渋谷区と港区）", "同じ港区"], answer: 1, explanation: "UZU TOKYOは渋谷区、MyMyは港区。違う区にあります。" },
+  { category: "事業提携", q: "Sallyが2025年6月に業務提携した企業は？", choices: ["セガ", "GENDA GiGO Entertainment", "バンダイナムコアミューズメント"], answer: 1, explanation: "2025年6月21〜22日にSally×GENDA GiGO業務提携を発表しました。" },
+  { category: "事業提携", q: "GENDA GiGO Entertainmentは何系列の企業か？", choices: ["SEGA系", "GENDA系", "コナミ系"], answer: 1, explanation: "GENDA系列のアミューズメント企業です。" },
+  { category: "事業提携", q: "東京メトロとの共催公演はどれか？", choices: ["盗薬次楽", "逃窓（TOSO）", "淵泊渚"], answer: 1, explanation: "『逃窓（TOSO）』が東京メトロとの共催公演です。" },
+  { category: "事業提携", q: "Sallyが三菱地所と組んで実施した公演は？", choices: ["呪景", "密行喩送", "淵泊渚"], answer: 2, explanation: "『淵泊渚』がSally企画ウズプロダクション×三菱地所の共催で実施されました。" },
+  { category: "事業提携", q: "池袋PARCOと組んで実施した公演として正しいのは？", choices: ["落掌・逃窓", "盗薬次楽・密行喩送", "呪景・恣験"], answer: 1, explanation: "『盗薬次楽』『密行喩送』が池袋PARCOで開催されました。" },
+  { category: "事業提携", q: "JOYSOUNDのカラオケ協力型マダミス作品名は？", choices: ["「いろは事件」", "「カラオケ殺人事件」", "「歌声の謎」"], answer: 0, explanation: "「いろは事件」が2025年8月から配信されました。" },
+  { category: "事業提携", q: "松竹ベンチャーズが出資したのはどのラウンドか？", choices: ["シード", "プレシリーズA", "シリーズA"], answer: 1, explanation: "松竹ベンチャーズは2024年7月のプレシリーズAで新規投資家として参加しました。" },
+  { category: "事業提携", q: "「場を持つ大手」と組むパターンに含まれない企業はどれか？", choices: ["PARCO", "東急プラザ", "任天堂"], answer: 2, explanation: "Sallyが組むのはPARCO・東急プラザ・東京メトロ・三菱地所・GENDA GiGOなど場を持つ大手。任天堂は含まれません。" },
+  { category: "事業提携", q: "副社長コメント付き継続支援が確認できるDBは？", choices: ["INITIAL", "STARTUP DB", "Sally Official Site"], answer: 0, explanation: "Sally InitialやINITIALでサムライインキュベートが副社長コメント付きで継続支援していることが確認できます。" },
+  { category: "事業提携", q: "PARCO GAMESと共同制作した公演は？", choices: ["呪景", "密行喩送", "恣験"], answer: 1, explanation: "『密行喩送』がSally×パルコ／PARCO GAMESの共同企画で開催されました。" },
+  { category: "事業提携", q: "Sallyが東急プラザ渋谷と組んで実施した公演は？", choices: ["盗薬次楽", "落掌", "密行喩送"], answer: 1, explanation: "『落掌』が東急プラザ渋谷で開催されました。" },
+  { category: "事業提携", q: "JFR MIRAI CREATORS Fundが出資理由として挙げた点は？", choices: ["「オンラインゲームとの相乗効果」", "「商業施設を活かしたエリア回遊やPARCO GAMESとの共創への期待」", "「海外展開への期待」"], answer: 1, explanation: "商業施設を活かしたエリア回遊やPARCO GAMESとの共創への期待が出資理由として挙げられました。" },
+  { category: "事業提携", q: "JOYSOUNDを運営する企業は？", choices: ["第一興商", "エクシング", "BMB"], answer: 1, explanation: "エクシングがJOYSOUNDの運営企業で、直営店「みるハコ」「X1端末」などで連携しています。" },
+  { category: "事業提携", q: "Sallyが「場を持つ大手」と組むパッケージで提供しているサービスは？", choices: ["シナリオ・演出・予約導線・キャストオペレーション", "キャスト・衣装・音楽・照明", "デジタル・アナログ・映像・音響"], answer: 0, explanation: "シナリオ／演出／予約導線／キャストオペレーションをパッケージで提供し、イマーシブのプラットフォーマーとして機能しています。" },
+  { category: "事業提携", q: "「マダミス＝アプリの中の体験」だったブランドを街そのものへ拡張するシリーズの統括組織は？", choices: ["UZU Live", "ウズプロダクション", "UZU Theater"], answer: 1, explanation: "社内レーベル「ウズプロダクション」がイマーシブ公演シリーズを統括しています。" },
+  { category: "事業提携", q: "ウズプロダクションが「初のメンバー募集」を行ったプラットフォームは？", choices: ["LinkedIn", "note", "Twitter"], answer: 1, explanation: "note上で初のメンバー募集を行い、シリーズ拡大に向けて自社制作チームを本格内製化しました。" },
+  /* ===== BATCH 6: グローバル展開・メディア・タイムライン総合 (Q251-Q300) ===== */
+  { category: "グローバル展開", q: "UZUの英語版が正式リリースされたのはいつか？", choices: ["2024年6月", "2025年6月", "2026年6月"], answer: 1, explanation: "2025年6月にUZUアプリ英語版とUZU STUDIO英語版が同時に正式リリースされました。" },
+  { category: "グローバル展開", q: "UZUの台湾版がリリースされたのはいつか？", choices: ["2024年7月", "2024年11月", "2025年3月"], answer: 1, explanation: "2024年11月に台湾版UZUがリリースされました。" },
+  { category: "グローバル展開", q: "Sallyが韓国支店を設立した年は？", choices: ["2024年", "2025年", "2026年"], answer: 1, explanation: "2025年に韓国支店を設立し、韓国版UZUをリリースしました。" },
+  { category: "グローバル展開", q: "Sallyのグローバル展開方針として示されているのは？", choices: ["AIによる自動翻訳一括展開", "多言語の高評価作品を相互翻訳するグローバルエコシステム構想", "各国の有名作家にゼロから制作依頼"], answer: 1, explanation: "多言語の高評価作品を相互翻訳するグローバルエコシステム構想を表明しています。" },
+  { category: "グローバル展開", q: "UZUの展開言語に含まれていないのはどれか？", choices: ["日本語", "英語", "スペイン語"], answer: 2, explanation: "日本語・英語・繁体字（台湾）・韓国語を展開。スペイン語は含まれていません。" },
+  { category: "グローバル展開", q: "UZU英語版とUZU STUDIO英語対応の同時実施時期は？", choices: ["2024年11月", "2025年6月", "2026年4月"], answer: 1, explanation: "2025年6月に同時実施されました。" },
+  { category: "グローバル展開", q: "Sallyのアジア展開で重点となっている市場の組み合わせは？", choices: ["中国・シンガポール", "台湾・韓国", "アメリカ・カナダ"], answer: 1, explanation: "台湾版（2024年11月）と韓国版（2025年）のリリースを通じてアジア展開を本格化しています。" },
+  { category: "メディア露出", q: "平石英太郎がゲスト出演したSpotifyポッドキャストの番組名は？", choices: ["Startup Now", "Startups Go Global", "Tech Talk Japan"], answer: 0, explanation: "Spotifyポッドキャスト「Startup Now」#60前編にゲスト出演しました。" },
+  { category: "メディア露出", q: "平石英太郎のポッドキャスト出演回のエピソードタイトルに含まれるフレーズは？", choices: ["「マダミスで世界を変える」", "「論文で東大に入学し学生起業」", "「ゲームアプリで億を稼ぐ方法」"], answer: 1, explanation: "「論文で東大に入学し学生起業／泣いたり笑ったり、最も自分のための事業テーマと思えたのがマダミスだった」がタイトルです。" },
+  { category: "メディア露出", q: "プレシリーズAを報じた媒体に含まれるのは？", choices: ["NHKニュース", "THE BRIDGE", "TBS NEWS"], answer: 1, explanation: "THE BRIDGE、電ファミニコゲーマー、@DIMEなどがプレシリーズAを報じました。" },
+  { category: "メディア露出", q: "@DIME誌の「累計プレイ数100万回突破」特集が公開されたのは？", choices: ["2023年", "2024年", "2025年"], answer: 1, explanation: "2024年に@DIMEが特集記事を公開しました。" },
+  { category: "メディア露出", q: "AdverTimes（宣伝会議）が裏側特集したUZUの公演は？", choices: ["盗薬次楽", "密行喩送", "逃窓(TOSO)"], answer: 1, explanation: "AdverTimesは『密行喩送』のプロモーション戦略を特集しました。" },
+  { category: "メディア露出", q: "UZU TOKYOの開業を特集した地域経済媒体は？", choices: ["新宿経済新聞", "シブヤ経済新聞", "渋谷タイムズ"], answer: 1, explanation: "シブヤ経済新聞がUZU TOKYO開業を特集しました。" },
+  { category: "メディア露出", q: "Sallyのシリーズ調達を報じた経済新聞は？", choices: ["日本経済新聞", "産経新聞", "読売新聞"], answer: 0, explanation: "日本経済新聞、ASCII STARTUP、VOIX biz、Fashionsnapなどがシリーズ調達を報道しました。" },
+  { category: "メディア露出", q: "『逃窓(TOSO)』を取り上げた鉄道専門メディアは？", choices: ["鉄道チャンネル", "鉄道ジャーナル", "鉄道ファン"], answer: 0, explanation: "鉄道チャンネル、railf.jpなどが取り上げました。" },
+  { category: "メディア露出", q: "4Gamer.netがSally×シナリオ作家の対談「ウズはどこから来てどこに向かうのか」を掲載した年は？", choices: ["2021年", "2022年", "2023年"], answer: 1, explanation: "2022年4月に4Gamer.netが対談記事を掲載しました。" },
+  { category: "メディア露出", q: "Morning Pitchに掲載されているSallyのページがあるサービスは？", choices: ["Morning Pitch", "Lunch Pitch", "Evening Pitch"], answer: 0, explanation: "Morning Pitchに株式会社Sallyページが掲載されています。" },
+  { category: "メディア露出", q: "2023年にSallyが登壇したVCの「スタートアップの扉」コーナーを持つ投資家は？", choices: ["サムライインキュベート", "CyberAgent Capital", "i-nest capital"], answer: 1, explanation: "CyberAgent Capital Monthly Pitch!「スタートアップの扉」コーナーで紹介されました。" },
+  { category: "タイムライン", q: "UZU、UZU STUDIO、マダミス.jpの三本柱が出揃ったのは何年か？", choices: ["2021年", "2022年", "2023年"], answer: 1, explanation: "2022年に三本柱が出揃い、プラットフォーム型事業の原型が完成しました。" },
+  { category: "タイムライン", q: "2022年4月の4Gamer.net掲載内容は？", choices: ["UZU新機能レビュー", "開発元×シナリオ作家の対談記事", "資金調達速報"], answer: 1, explanation: "「人気のマーダーミステリーアプリ『ウズ』は、どこから来てどこに向かうのか」と題する開発元×シナリオ作家の対談記事です。" },
+  { category: "タイムライン", q: "シリーズ公演の特徴として示されているフレーズは？", choices: ["「UZUアプリの世界観をオフラインに溢れ出させる」", "「スマホゲームの反対側にいるオフライン専門チーム」", "「東京圏を中心に直営劇場を増やす」"], answer: 0, explanation: "「UZUアプリの世界観をオフラインに溢れ出させる」がシリーズ全体の意義として示されています。" },
+  { category: "タイムライン", q: "ウズプロダクション初のメンバー募集の媒体は？", choices: ["LinkedIn", "note", "Twitter"], answer: 1, explanation: "noteで初のメンバー募集を行いました。" },
+  { category: "タイムライン", q: "ESCAPE.IDとはどんなサービスか？", choices: ["UZU公式ファンサイト", "謎解き／脱出ゲーム情報サイト", "Sally運営の攻略サイト"], answer: 1, explanation: "謎解き／脱出ゲーム情報サイトです。ウズプロダクション作品が常設で取り上げられています。" },
+  { category: "タイムライン", q: "シリーズAでJ.フロント系CVCが出資した背景は？", choices: ["「オンラインゲームとの相乗効果」", "「商業施設を活かしたエリア回遊やPARCO GAMESとの共創への期待」", "「海外展開への期待」"], answer: 1, explanation: "商業施設を活かしたエリア回遊やPARCO GAMESとの共創への期待が出資理由として明示されました。" },
+  { category: "タイムライン", q: "2024年9月の東京ゲームショウで発表されたのは？", choices: ["UZU次世代版アプリ", "KONAMI PROJECT ZIRCON×UZU第2回マダミスコンテスト", "UZU TOKYO建設計画"], answer: 1, explanation: "東京ゲームショウ2024でKONAMI PROJECT ZIRCON×UZU第2回マダミスコンテストが発表されました。" },
+  { category: "タイムライン", q: "「突然ミステリー×ロイヤルパークホテル」の共同制作に関わったのは？", choices: ["松竹／三菱地所", "東急プラザ／東急グループ", "PARCO／パルコグループ"], answer: 0, explanation: "松竹／三菱地所の協力、ウズプロダクション制作です。" },
+  { category: "タイムライン", q: "2025年初にUZUで展開された初心者向けIPコラボ作品は？", choices: ["鬼滅の刃マダミス", "金田一少年の事件簿", "ドラえもんマダミス"], answer: 1, explanation: "「金田一少年の事件簿 死面旅館殺人事件」が2025年初にUZU上で展開されました。" },
+  { category: "タイムライン", q: "SallyがIPOを見据えると明言したのは？", choices: ["シードラウンド時", "プレシリーズA時", "シリーズA時"], answer: 2, explanation: "2026年5月のシリーズA発表時にIPOを見据えた成長フェーズに入ると明言しました。" },
+  { category: "タイムライン", q: "5つの参入障壁の軸に含まれないものは？", choices: ["スマホアプリでの参入障壁低減", "シナリオ作家エコシステム", "独自の映画製作スタジオ"], answer: 2, explanation: "5軸は (1)スマホアプリ (2)作家エコシステム (3)大手IP・施設コラボ (4)UZU TOKYO (5)周遊型イマーシブ公演。映画製作は含まれません。" },
+  { category: "タイムライン", q: "中国マダミス市場が映画・スポーツに次ぐ巨大市場に成長したのは何年以降か？", choices: ["2015年以降", "2018年以降", "2022年以降"], answer: 1, explanation: "中国マダミス市場は2018年以降に台頭しました。" },
+  { category: "タイムライン", q: "2022年末時点の中国マダミス市場規模（報道ベース）は？", choices: ["約46億円", "約460億円", "約4,600億円"], answer: 1, explanation: "約460億円規模に成長したと報じられています。" },
+  { category: "タイムライン", q: "「マダミスを起点にした4方向の拡張」として正しいのは？", choices: ["オンライン・リアル・IP・海外", "デジタル・フィジカル・グローバル・メタバース", "アプリ・店舗・IP・SNS"], answer: 0, explanation: "オンライン・リアル・IP・海外の4方向への拡張戦略を打ち出しました。" },
+  { category: "タイムライン", q: "ウズプロダクションが「初のメンバー募集」を行ったのは？", choices: ["2024年後半", "2025年（シリーズ拡大に向けて）", "2026年初"], answer: 1, explanation: "2025年、シリーズ拡大に向けて自社制作チームを本格内製化するためメンバー募集を実施しました。" },
+  { category: "タイムライン", q: "2025年4月26日に始まったのは？", choices: ["UZU英語版リリース", "『盗薬次楽』開催", "マダミスシアター MyMyオープン"], answer: 1, explanation: "2025年4月26日に『盗薬次楽』が池袋PARCOで開幕しました。" },
+  { category: "タイムライン", q: "2025年以降ほぼ毎シーズン新作を投入しているジャンルは？", choices: ["デジタルカードゲーム", "周遊型イマーシブサスペンス", "リアル脱出ゲーム"], answer: 1, explanation: "2025年春以降、ウズプロダクション主導の周遊型イマーシブサスペンスが毎シーズン新作を投入しています。" },
+  { category: "タイムライン", q: "2026年4月に何が起きたか？", choices: ["UZU英語版の北米展開", "マダミスシアター MyMyのオープン", "シリーズAラウンドの発表"], answer: 1, explanation: "2026年4月にマダミスシアター MyMyがオープンしました。" },
+  { category: "タイムライン", q: "Sallyが「Sally STARTUP DB」にどう掲載されているか？", choices: ["上場企業情報として", "スタートアップ企業情報として", "海外投資情報として"], answer: 1, explanation: "STARTUP DBにスタートアップ企業情報として掲載されています。" },
+  { category: "タイムライン", q: "Sallyが2023年に登壇したKDDI Laboのイベントは何月開催？", choices: ["8月", "10月", "12月"], answer: 2, explanation: "2023年12月14日のKDDI Labo 12月全体会に登壇しました。" },
+  { category: "タイムライン", q: "「ルツボ」レーベルに参加するクリエイターは？", choices: ["三ヶ崎四五六", "久畑バク", "白岩ぱんだ"], answer: 2, explanation: "白岩ぱんだがUZU×週末倶楽部×白岩ぱんだのルツボに参加しています。" },
+  { category: "タイムライン", q: "「週刊少年ジャンプ」誌面でUZUと連動したコーナーが行われたのは？", choices: ["2023年頃", "2024年〜2025年頃", "2026年頃"], answer: 1, explanation: "2024年〜2025年頃に週刊少年ジャンプ誌面にマダミス連動コーナーが展開されました。" },
+  { category: "タイムライン", q: "「CLUB SECRET」のチケット300枚完売までの時間は？", choices: ["1時間", "25時間", "72時間"], answer: 1, explanation: "25時間でチケット300枚が完売しました。" },
+  { category: "タイムライン", q: "シリーズAでの資金使途として明記されているのは？", choices: ["「テレビCM放映費用」", "「百貨店・商業施設との共創による体験型コンテンツ開発」", "「証券会社手数料」"], answer: 1, explanation: "百貨店・商業施設・公共交通機関・IPホルダー等との共創による体験型コンテンツ開発が資金使途として明記されました。" },
+  { category: "タイムライン", q: "2026年5月時点のSally体制として誤っているのはどれか？", choices: ["2店舗目の常設直営劇場MyMyオープン済み", "東証グロース上場済み", "シリーズA資金調達済み"], answer: 1, explanation: "シリーズAは公表されましたが、東証上場はまだ実現していません（IPOは将来目標）。" },
+  { category: "タイムライン", q: "Sallyが2025年春以降「ほぼ毎月新作」を投入し始めたのは？", choices: ["2024年春以降", "2025年春以降", "2026年春以降"], answer: 1, explanation: "2025年春以降にウズプロダクション主導の新作投入ペースが加速しました。" },
+  { category: "タイムライン", q: "2026年5月のシリーズA発表時に公表されたKPIとして正しいのは？", choices: ["累計プレイ300万超・作品数2,500本超", "収録作品1,900本超・累計250万プレイ超・登録クリエイター4,800名超", "登録ユーザー数100万人超"], answer: 1, explanation: "シリーズA発表時に収録作品1,900本超・累計250万プレイ超・登録クリエイター4,800名超が公開されました。" },
+  { category: "タイムライン", q: "UZUがプレイヤーに提供する体験の特徴として正しいのは？", choices: ["ビデオ通話で完全リアルタイム対話", "スマホ1台・場所と時間の制約なくカジュアルにプレイ", "コンシューマーゲーム機専用"], answer: 1, explanation: "スマホ1台で完結し、場所と時間の制約なくカジュアルにプレイできるのが特徴です。" },
+  { category: "タイムライン", q: "ウズプロダクションが「場を持つ大手と組むパターン」を定着させた理由は？", choices: ["資金援助を得るため", "シナリオ・演出・予約導線・キャストオペレーションをパッケージで提供するため", "大手のブランド力だけを利用するため"], answer: 1, explanation: "シナリオ／演出／予約導線／キャストオペレーションをパッケージで提供するイマーシブのプラットフォーマーとして機能するためです。" },
+  { category: "タイムライン", q: "Sally公式PRTimesリリース一覧のcompany_idは？", choices: ["59942", "34930", "50711"], answer: 0, explanation: "Sallyの公式PRTimes企業IDは59942です。" },
+  { category: "タイムライン", q: "イマーシブ公演の1公演あたりの特徴として正しいのは？", choices: ["大型会場の数千人規模", "1組1〜4名前後の少人数貸切で約60〜120分", "10〜20人のグループ観劇"], answer: 1, explanation: "1公演あたり約60〜120分、1組1〜4名前後の少人数貸切で「現実と虚構の境界が曖昧になる」体験を志向しています。" },
+  { category: "タイムライン", q: "2026年5月時点のSally体制として正しいのは？", choices: ["3店舗常設・累計100万プレイ・シードラウンド", "2店舗常設直営劇場・累計250万プレイ超・シリーズA調達済み", "1店舗常設・累計50万プレイ・プレシリーズA"], answer: 1, explanation: "国内2店舗の常設直営劇場・累計250万プレイ超・シリーズA調達済みの体制です。" },
+  /* === BATCH_END === */
+];
+
+</script>
+<script>
+const QUIZ_LENGTH = 20;
+const AWARD_THRESHOLD = 18;
+let current = 0, score = 0, answered = false;
+let wrongAnswers = [];
+let shuffled = [];
+
+function updatePoolInfo() {
+  const el = document.getElementById('pool-info');
+  const btn = document.getElementById('btn-start');
+  if (typeof QUESTIONS === 'undefined') {
+    el.textContent = '⚠️ 問題プールが読み込めません';
+    return;
+  }
+  el.innerHTML = `📚 問題プール：<strong>${QUESTIONS.length}問</strong> から毎回20問を抽出`;
+  btn.disabled = false;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startQuiz() {
+  if (typeof QUESTIONS === 'undefined' || QUESTIONS.length === 0) return;
+  shuffled = shuffle(QUESTIONS).slice(0, QUIZ_LENGTH);
+  current = 0; score = 0; wrongAnswers = []; answered = false;
+  document.getElementById('screen-title').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-quiz').style.display = 'block';
+  loadQuestion();
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = shuffled[current];
+  document.getElementById('progress-bar').style.width = ((current / QUIZ_LENGTH) * 100) + '%';
+  document.getElementById('q-counter').textContent = `問題 ${current + 1} / ${QUIZ_LENGTH}`;
+  document.getElementById('score-badge').textContent = `正解 ${score} 問`;
+  document.getElementById('category-tag').textContent = q.category;
+  document.getElementById('question-text').textContent = q.q;
+  const feedback = document.getElementById('feedback-box');
+  feedback.className = 'feedback-box'; feedback.innerHTML = '';
+  const btnNext = document.getElementById('btn-next');
+  btnNext.className = 'btn-next';
+  btnNext.textContent = current + 1 < QUIZ_LENGTH ? '次の問題へ →' : '結果を見る 🎉';
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  const labels = ['A', 'B', 'C'];
+  q.choices.forEach((choice, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.innerHTML = `<span class="choice-label">${labels[i]}</span><span>${choice}</span>`;
+    btn.onclick = () => selectAnswer(i);
+    choicesEl.appendChild(btn);
+  });
+}
+
+function selectAnswer(chosen) {
+  if (answered) return;
+  answered = true;
+  const q = shuffled[current];
+  const buttons = document.querySelectorAll('.choice-btn');
+  const feedback = document.getElementById('feedback-box');
+  buttons.forEach(b => b.disabled = true);
+  if (chosen === q.answer) {
+    score++;
+    buttons[chosen].classList.add('correct');
+    feedback.className = 'feedback-box ok show';
+    feedback.innerHTML = `<span class="feedback-icon">✅</span><strong>正解！</strong>　${q.explanation}`;
+  } else {
+    buttons[chosen].classList.add('wrong');
+    buttons[q.answer].classList.add('reveal');
+    feedback.className = 'feedback-box ng show';
+    feedback.innerHTML = `<span class="feedback-icon">❌</span><strong>不正解…</strong>　正解は「${q.choices[q.answer]}」です。${q.explanation}`;
+    wrongAnswers.push({ q: q.q, a: q.choices[q.answer] });
+  }
+  document.getElementById('score-badge').textContent = `正解 ${score} 問`;
+  document.getElementById('btn-next').classList.add('show');
+}
+
+function nextQuestion() {
+  current++;
+  if (current >= QUIZ_LENGTH) showResult();
+  else loadQuestion();
+}
+
+function showResult() {
+  document.getElementById('screen-quiz').style.display = 'none';
+  document.getElementById('screen-result').style.display = 'block';
+  document.getElementById('result-score').innerHTML = `${score} <span>/ ${QUIZ_LENGTH}問</span>`;
+  document.getElementById('progress-bar').style.width = '100%';
+  const awardArea = document.getElementById('award-area');
+  const trophy = document.getElementById('trophy');
+  const resultTitle = document.getElementById('result-title');
+  const resultMsg = document.getElementById('result-msg');
+  if (score >= AWARD_THRESHOLD) {
+    trophy.textContent = '🏆';
+    resultTitle.textContent = 'UZUマスター Award 獲得！';
+    awardArea.innerHTML = `
+      <div class="award-banner">
+        <div class="award-title">🥇 UZUマスター Award 🥇</div>
+        <div class="award-text">${QUIZ_LENGTH}問中${score}問正解！えいたろう・Sally・UZUのことを知り尽くしたマダミスプラットフォーマー認定。あなたこそがUZUの世界の渦の中心だ！</div>
+      </div>`;
+    resultMsg.textContent = `${score === QUIZ_LENGTH ? '完璧です！' : 'すばらしい成績です！'}平石英太郎のビジョン「世界中を体験型エンタメ『マダミス』の渦に巻き込む」をあなたは体現しています。`;
+  } else if (score >= 14) {
+    trophy.textContent = '🥈';
+    resultTitle.textContent = 'もう少しで Award！';
+    awardArea.innerHTML = `
+      <div class="miss-banner">
+        <p>🎖️ あと${AWARD_THRESHOLD - score}問で <strong>UZUマスター Award</strong> 獲得！<br>もう一度挑戦してAwardを目指そう！（次回は別の問題が出題されます）</p>
+      </div>`;
+    resultMsg.textContent = `${score}問正解！UZUへの理解は深まっています。苦手な分野を復習してもう一度チャレンジしてみてください。`;
+  } else {
+    trophy.textContent = '📖';
+    resultTitle.textContent = 'もっと学ぼう！';
+    awardArea.innerHTML = `
+      <div class="miss-banner">
+        <p>📚 UZUマスター Awardまであと<strong>${AWARD_THRESHOLD - score}問</strong>！<br>平石英太郎・Sally・UZUをもっと学んで再挑戦しよう！</p>
+      </div>`;
+    resultMsg.textContent = `${score}問正解でした。マダミスアプリ「UZU」の世界はまだまだ広い！もう一度挑戦してAwardを目指そう。`;
+  }
+  if (wrongAnswers.length > 0) {
+    const wrongListEl = document.getElementById('wrong-list');
+    wrongListEl.innerHTML = `<h3>📌 間違えた問題の復習（${wrongAnswers.length}問）</h3>`;
+    wrongAnswers.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'wrong-item';
+      div.innerHTML = `<div class="wq">Q. ${item.q}</div><div class="wa">✅ 正解：${item.a}</div>`;
+      wrongListEl.appendChild(div);
+    });
+  }
+}
+
+function restartQuiz() {
+  document.getElementById('screen-result').style.display = 'none';
+  document.getElementById('screen-title').style.display = 'block';
+}
+
+window.addEventListener('load', updatePoolInfo);
+</script>
+</body>
+</html>
